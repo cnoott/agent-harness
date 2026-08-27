@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandbox Harness</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">LOCAL AGENT HARNESS</p>
+        <h1>Sandbox Harness</h1>
+      </div>
+      <div class="header-actions">
+        <span id="chat-id" class="muted"></span>
+        <button id="new-chat" class="secondary">New chat</button>
+      </div>
+    </header>
+    <main>
+      <section class="chat-panel">
+        <div id="messages" class="messages"></div>
+        <div id="activity" class="activity hidden">
+          <div class="activity-header">Activity</div>
+          <div id="activity-events"></div>
+        </div>
+        <form id="composer">
+          <label class="upload" title="Upload files to the workspace">
+            <input id="file-input" type="file" multiple />
+            <span>Attach</span>
+          </label>
+          <textarea id="prompt" rows="3" placeholder="Give the agent a goal…"></textarea>
+          <div class="composer-actions">
+            <span id="status" class="muted">Ready</span>
+            <button id="stop" type="button" class="secondary hidden">Stop</button>
+            <button id="send" type="submit">Run</button>
+          </div>
+        </form>
+      </section>
+      <aside class="workspace-panel">
+        <section id="browser-preview" class="browser-preview hidden" aria-live="polite">
+          <div class="preview-heading">
+            <div>
+              <p class="eyebrow">LIVE</p>
+              <h2>Browser view</h2>
+            </div>
+            <span id="browser-preview-status" class="muted">Waiting</span>
+          </div>
+          <div class="preview-frame"><img id="browser-preview-image" alt="Live browser preview" /></div>
+          <a id="browser-preview-url" class="preview-url" target="_blank" rel="noreferrer"></a>
+          <div class="browser-controls">
+            <button id="browser-control-toggle" type="button" class="secondary">Take control</button>
+            <div id="browser-control-panel" class="browser-control-panel hidden">
+              <button id="browser-back" type="button" class="secondary" title="Back">←</button>
+              <input id="browser-type" autocomplete="off" placeholder="Type into the focused field…" />
+              <button id="browser-type-send" type="button" class="secondary">Type</button>
+              <button class="browser-key secondary" type="button" data-key="Enter">Enter</button>
+              <button class="browser-key secondary" type="button" data-key="Escape">Esc</button>
+            </div>
+            <p id="browser-control-hint" class="browser-control-hint hidden">Click or scroll the preview to control the browser.</p>
+          </div>
+        </section>
+        <div class="workspace-heading">
+          <div>
+            <p class="eyebrow">PERSISTENT</p>
+            <h2>Workspace</h2>
+          </div>
+          <button id="refresh-files" class="icon-button" title="Refresh files">↻</button>
+        </div>
+        <p class="workspace-copy">Files are mounted at <code>/workspace</code> inside the agent’s Docker sandbox.</p>
+        <div id="files" class="files"></div>
+      </aside>
+    </main>
+    <template id="message-template">
+      <article class="message">
+        <div class="message-meta"></div>
+        <div class="message-content"></div>
+      </article>
+    </template>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
