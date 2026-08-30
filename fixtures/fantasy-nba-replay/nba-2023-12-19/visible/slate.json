@@ -1,0 +1,152 @@
+{
+  "id": "nba-2023-12-19",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2023-12-19T12:00:00-05:00",
+  "game_date": "2023-12-19",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1631101",
+      "name": "Shaedon Sharpe",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "PHX",
+      "home": true,
+      "season_dk_avg": 30.74,
+      "last_5_dk_avg": 26.9,
+      "projected_minutes": 31.71,
+      "prior_games": 25,
+      "rest_days": 1
+    },
+    {
+      "id": "1627763",
+      "name": "Malcolm Brogdon",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "PHX",
+      "home": true,
+      "season_dk_avg": 29.35,
+      "last_5_dk_avg": 17.85,
+      "projected_minutes": 23.01,
+      "prior_games": 18,
+      "rest_days": 1
+    },
+    {
+      "id": "1628960",
+      "name": "Grayson Allen",
+      "positions": [
+        "G"
+      ],
+      "team": "PHX",
+      "opponent": "POR",
+      "home": false,
+      "season_dk_avg": 23.9,
+      "last_5_dk_avg": 26.6,
+      "projected_minutes": 35.58,
+      "prior_games": 21,
+      "rest_days": 1
+    },
+    {
+      "id": "1626224",
+      "name": "Cedi Osman",
+      "positions": [
+        "F"
+      ],
+      "team": "SAS",
+      "opponent": "MIL",
+      "home": false,
+      "season_dk_avg": 15.09,
+      "last_5_dk_avg": 17.05,
+      "projected_minutes": 16.21,
+      "prior_games": 25,
+      "rest_days": 1
+    },
+    {
+      "id": "1629680",
+      "name": "Matisse Thybulle",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "PHX",
+      "home": true,
+      "season_dk_avg": 14.94,
+      "last_5_dk_avg": 17.7,
+      "projected_minutes": 24.15,
+      "prior_games": 25,
+      "rest_days": 1
+    },
+    {
+      "id": "1628966",
+      "name": "Keita Bates-Diop",
+      "positions": [
+        "F"
+      ],
+      "team": "PHX",
+      "opponent": "POR",
+      "home": false,
+      "season_dk_avg": 12.7,
+      "last_5_dk_avg": 6.5,
+      "projected_minutes": 10.86,
+      "prior_games": 22,
+      "rest_days": 3
+    },
+    {
+      "id": "203994",
+      "name": "Jusuf Nurkic",
+      "positions": [
+        "C"
+      ],
+      "team": "PHX",
+      "opponent": "POR",
+      "home": false,
+      "season_dk_avg": 34.1,
+      "last_5_dk_avg": 41.25,
+      "projected_minutes": 30.35,
+      "prior_games": 26,
+      "rest_days": 1
+    },
+    {
+      "id": "1629028",
+      "name": "Deandre Ayton",
+      "positions": [
+        "C"
+      ],
+      "team": "POR",
+      "opponent": "PHX",
+      "home": true,
+      "season_dk_avg": 30.68,
+      "last_5_dk_avg": 23.7,
+      "projected_minutes": 29.24,
+      "prior_games": 21,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

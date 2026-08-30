@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-02-27",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-02-27T12:00:00-05:00",
+  "game_date": "2024-02-27",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1630178",
+      "name": "Tyrese Maxey",
+      "positions": [
+        "G"
+      ],
+      "team": "PHI",
+      "opponent": "BOS",
+      "home": false,
+      "season_dk_avg": 42.18,
+      "last_5_dk_avg": 44,
+      "projected_minutes": 39.57,
+      "prior_games": 52,
+      "rest_days": 1
+    },
+    {
+      "id": "1629014",
+      "name": "Anfernee Simons",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "MIA",
+      "home": true,
+      "season_dk_avg": 34.64,
+      "last_5_dk_avg": 29.15,
+      "projected_minutes": 32.34,
+      "prior_games": 33,
+      "rest_days": 1
+    },
+    {
+      "id": "1630170",
+      "name": "Devin Vassell",
+      "positions": [
+        "G"
+      ],
+      "team": "SAS",
+      "opponent": "MIN",
+      "home": false,
+      "season_dk_avg": 31.3,
+      "last_5_dk_avg": 36.7,
+      "projected_minutes": 31.95,
+      "prior_games": 53,
+      "rest_days": 1
+    },
+    {
+      "id": "202699",
+      "name": "Tobias Harris",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "BOS",
+      "home": false,
+      "season_dk_avg": 32.33,
+      "last_5_dk_avg": 30.6,
+      "projected_minutes": 32.62,
+      "prior_games": 51,
+      "rest_days": 1
+    },
+    {
+      "id": "203924",
+      "name": "Jerami Grant",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "MIA",
+      "home": true,
+      "season_dk_avg": 32.06,
+      "last_5_dk_avg": 28.6,
+      "projected_minutes": 35.65,
+      "prior_games": 49,
+      "rest_days": 1
+    },
+    {
+      "id": "1629640",
+      "name": "Keldon Johnson",
+      "positions": [
+        "F"
+      ],
+      "team": "SAS",
+      "opponent": "MIN",
+      "home": false,
+      "season_dk_avg": 28.7,
+      "last_5_dk_avg": 18,
+      "projected_minutes": 22.65,
+      "prior_games": 54,
+      "rest_days": 1
+    },
+    {
+      "id": "1629048",
+      "name": "Goga Bitadze",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "BKN",
+      "home": true,
+      "season_dk_avg": 18.46,
+      "last_5_dk_avg": 8.65,
+      "projected_minutes": 9.57,
+      "prior_games": 48,
+      "rest_days": 1
+    },
+    {
+      "id": "1630194",
+      "name": "Paul Reed",
+      "positions": [
+        "C"
+      ],
+      "team": "PHI",
+      "opponent": "BOS",
+      "home": false,
+      "season_dk_avg": 18.09,
+      "last_5_dk_avg": 27.25,
+      "projected_minutes": 29.62,
+      "prior_games": 57,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

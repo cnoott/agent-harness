@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-01-02",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-01-02T12:00:00-05:00",
+  "game_date": "2024-01-02",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1630178",
+      "name": "Tyrese Maxey",
+      "positions": [
+        "G"
+      ],
+      "team": "PHI",
+      "opponent": "CHI",
+      "home": true,
+      "season_dk_avg": 42.43,
+      "last_5_dk_avg": 39.95,
+      "projected_minutes": 39.1,
+      "prior_games": 31,
+      "rest_days": 2
+    },
+    {
+      "id": "1630170",
+      "name": "Devin Vassell",
+      "positions": [
+        "G"
+      ],
+      "team": "SAS",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 29.31,
+      "last_5_dk_avg": 34.3,
+      "projected_minutes": 32.38,
+      "prior_games": 27,
+      "rest_days": 1
+    },
+    {
+      "id": "1630581",
+      "name": "Josh Giddey",
+      "positions": [
+        "G"
+      ],
+      "team": "OKC",
+      "opponent": "BOS",
+      "home": true,
+      "season_dk_avg": 27.06,
+      "last_5_dk_avg": 24.65,
+      "projected_minutes": 23.46,
+      "prior_games": 30,
+      "rest_days": 1
+    },
+    {
+      "id": "1631099",
+      "name": "Keegan Murray",
+      "positions": [
+        "F"
+      ],
+      "team": "SAC",
+      "opponent": "CHA",
+      "home": true,
+      "season_dk_avg": 27.22,
+      "last_5_dk_avg": 24.2,
+      "projected_minutes": 34.14,
+      "prior_games": 27,
+      "rest_days": 1
+    },
+    {
+      "id": "1631110",
+      "name": "Jeremy Sochan",
+      "positions": [
+        "F"
+      ],
+      "team": "SAS",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 24.58,
+      "last_5_dk_avg": 26.4,
+      "projected_minutes": 28.12,
+      "prior_games": 32,
+      "rest_days": 1
+    },
+    {
+      "id": "1626162",
+      "name": "Kelly Oubre Jr.",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "CHI",
+      "home": true,
+      "season_dk_avg": 22.18,
+      "last_5_dk_avg": 22.8,
+      "projected_minutes": 29.37,
+      "prior_games": 21,
+      "rest_days": 2
+    },
+    {
+      "id": "1631096",
+      "name": "Chet Holmgren",
+      "positions": [
+        "C"
+      ],
+      "team": "OKC",
+      "opponent": "BOS",
+      "home": true,
+      "season_dk_avg": 37.09,
+      "last_5_dk_avg": 37.55,
+      "projected_minutes": 30.78,
+      "prior_games": 31,
+      "rest_days": 1
+    },
+    {
+      "id": "1629048",
+      "name": "Goga Bitadze",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "GSW",
+      "home": false,
+      "season_dk_avg": 21.43,
+      "last_5_dk_avg": 18.15,
+      "projected_minutes": 16.83,
+      "prior_games": 29,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

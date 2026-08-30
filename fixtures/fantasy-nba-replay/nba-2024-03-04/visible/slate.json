@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-03-04",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-03-04T12:00:00-05:00",
+  "game_date": "2024-03-04",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1631101",
+      "name": "Shaedon Sharpe",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": false,
+      "season_dk_avg": 27.97,
+      "last_5_dk_avg": 23.4,
+      "projected_minutes": 25.9,
+      "prior_games": 32,
+      "rest_days": 52
+    },
+    {
+      "id": "1629673",
+      "name": "Jordan Poole",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "UTA",
+      "home": false,
+      "season_dk_avg": 26.8,
+      "last_5_dk_avg": 35,
+      "projected_minutes": 29.78,
+      "prior_games": 58,
+      "rest_days": 2
+    },
+    {
+      "id": "1630581",
+      "name": "Josh Giddey",
+      "positions": [
+        "G"
+      ],
+      "team": "OKC",
+      "opponent": "LAL",
+      "home": false,
+      "season_dk_avg": 26.75,
+      "last_5_dk_avg": 22.8,
+      "projected_minutes": 20.56,
+      "prior_games": 59,
+      "rest_days": 0
+    },
+    {
+      "id": "1628398",
+      "name": "Kyle Kuzma",
+      "positions": [
+        "F"
+      ],
+      "team": "WAS",
+      "opponent": "UTA",
+      "home": false,
+      "season_dk_avg": 37.51,
+      "last_5_dk_avg": 39.75,
+      "projected_minutes": 33.94,
+      "prior_games": 58,
+      "rest_days": 2
+    },
+    {
+      "id": "1631114",
+      "name": "Jalen Williams",
+      "positions": [
+        "F"
+      ],
+      "team": "OKC",
+      "opponent": "LAL",
+      "home": false,
+      "season_dk_avg": 33.55,
+      "last_5_dk_avg": 35.25,
+      "projected_minutes": 31.33,
+      "prior_games": 54,
+      "rest_days": 0
+    },
+    {
+      "id": "1630166",
+      "name": "Deni Avdija",
+      "positions": [
+        "F"
+      ],
+      "team": "WAS",
+      "opponent": "UTA",
+      "home": false,
+      "season_dk_avg": 28.98,
+      "last_5_dk_avg": 36.8,
+      "projected_minutes": 34.12,
+      "prior_games": 57,
+      "rest_days": 2
+    },
+    {
+      "id": "1629650",
+      "name": "Moses Brown",
+      "positions": [
+        "C"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": false,
+      "season_dk_avg": 8.57,
+      "last_5_dk_avg": 7.5,
+      "projected_minutes": 9.18,
+      "prior_games": 11,
+      "rest_days": 1
+    },
+    {
+      "id": "1630641",
+      "name": "Ibou Badji",
+      "positions": [
+        "C"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": false,
+      "season_dk_avg": 8.08,
+      "last_5_dk_avg": 4.8,
+      "projected_minutes": 7.89,
+      "prior_games": 18,
+      "rest_days": 2
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

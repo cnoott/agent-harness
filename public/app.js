@@ -11,6 +11,10 @@ const browserPreview = $("#browser-preview");
 const browserPreviewImage = $("#browser-preview-image");
 const browserPreviewStatus = $("#browser-preview-status");
 const browserPreviewUrl = $("#browser-preview-url");
+const historyDrawer = $("#history-drawer");
+const historyBackdrop = $("#history-backdrop");
+const historyToggle = $("#history-toggle");
+const historyList = $("#history-list");
 const browserControlToggle = $("#browser-control-toggle");
 const browserControlPanel = $("#browser-control-panel");
 const browserControlHint = $("#browser-control-hint");
@@ -130,6 +134,64 @@ async function createChat() {
   setBrowserControl(false);
   connectBrowserEvents();
   await refreshFiles();
+  closeHistory();
+}
+
+function chatLabel(chat) {
+  const firstUserMessage = chat.messages?.find((message) => message.role === "user")?.text;
+  return firstUserMessage?.replaceAll(/\s+/g, " ").trim() || "New chat";
+}
+
+function formatChatDate(value) {
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+}
+
+async function refreshHistory() {
+  const response = await fetch("/api/chats");
+  const chats = response.ok ? await response.json() : [];
+  historyList.replaceChildren();
+  if (!chats.length) {
+    historyList.textContent = "No chats yet.";
+    return;
+  }
+  for (const chat of chats) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "history-item";
+    item.classList.toggle("current", chat.id === state.chatId);
+    const title = document.createElement("span");
+    title.className = "history-item-title";
+    title.textContent = chatLabel(chat);
+    const date = document.createElement("span");
+    date.className = "history-item-date";
+    date.textContent = formatChatDate(chat.createdAt);
+    item.append(title, date);
+    item.addEventListener("click", async () => {
+      if (state.running || chat.id === state.chatId) return closeHistory();
+      state.chatId = chat.id;
+      localStorage.setItem("sandbox-harness-chat", chat.id);
+      clearBrowserPreview();
+      await loadChat();
+      closeHistory();
+    });
+    historyList.append(item);
+  }
+}
+
+function closeHistory() {
+  historyDrawer.classList.remove("open");
+  historyBackdrop.classList.add("hidden");
+  historyDrawer.setAttribute("aria-hidden", "true");
+  historyToggle.setAttribute("aria-expanded", "false");
+}
+
+async function toggleHistory() {
+  if (historyDrawer.classList.contains("open")) return closeHistory();
+  await refreshHistory();
+  historyDrawer.classList.add("open");
+  historyBackdrop.classList.remove("hidden");
+  historyDrawer.setAttribute("aria-hidden", "false");
+  historyToggle.setAttribute("aria-expanded", "true");
 }
 
 async function loadChat() {
@@ -261,6 +323,9 @@ $("#composer").addEventListener("submit", async (event) => {
 stop.addEventListener("click", () => fetch(`/api/chats/${state.chatId}/stop`, { method: "POST" }));
 $("#new-chat").addEventListener("click", createChat);
 $("#refresh-files").addEventListener("click", refreshFiles);
+historyToggle.addEventListener("click", toggleHistory);
+$("#history-close").addEventListener("click", closeHistory);
+historyBackdrop.addEventListener("click", closeHistory);
 browserControlToggle.addEventListener("click", () => {
   if (state.running) return;
   setBrowserControl(!browserControlEnabled);

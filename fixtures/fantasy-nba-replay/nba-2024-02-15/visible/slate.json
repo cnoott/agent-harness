@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-02-15",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-02-15T12:00:00-05:00",
+  "game_date": "2024-02-15",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "203903",
+      "name": "Jordan Clarkson",
+      "positions": [
+        "G"
+      ],
+      "team": "UTA",
+      "opponent": "GSW",
+      "home": true,
+      "season_dk_avg": 28.72,
+      "last_5_dk_avg": 24.15,
+      "projected_minutes": 29.96,
+      "prior_games": 45,
+      "rest_days": 0
+    },
+    {
+      "id": "1629012",
+      "name": "Collin Sexton",
+      "positions": [
+        "G"
+      ],
+      "team": "UTA",
+      "opponent": "GSW",
+      "home": true,
+      "season_dk_avg": 28.27,
+      "last_5_dk_avg": 27.95,
+      "projected_minutes": 25.57,
+      "prior_games": 55,
+      "rest_days": 0
+    },
+    {
+      "id": "1630703",
+      "name": "Scoot Henderson",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 23.73,
+      "last_5_dk_avg": 31.5,
+      "projected_minutes": 29.67,
+      "prior_games": 42,
+      "rest_days": 1
+    },
+    {
+      "id": "1631133",
+      "name": "Jabari Walker",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 19.17,
+      "last_5_dk_avg": 18.15,
+      "projected_minutes": 28.07,
+      "prior_games": 49,
+      "rest_days": 1
+    },
+    {
+      "id": "1641739",
+      "name": "Toumani Camara",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 16.67,
+      "last_5_dk_avg": 18.25,
+      "projected_minutes": 24.8,
+      "prior_games": 52,
+      "rest_days": 1
+    },
+    {
+      "id": "1631200",
+      "name": "Kris Murray",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 8.69,
+      "last_5_dk_avg": 11.7,
+      "projected_minutes": 17.53,
+      "prior_games": 33,
+      "rest_days": 1
+    },
+    {
+      "id": "1641871",
+      "name": "Duop Reath",
+      "positions": [
+        "C"
+      ],
+      "team": "POR",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 17.13,
+      "last_5_dk_avg": 13.95,
+      "projected_minutes": 14.25,
+      "prior_games": 39,
+      "rest_days": 1
+    },
+    {
+      "id": "1630209",
+      "name": "Omer Yurtseven",
+      "positions": [
+        "C"
+      ],
+      "team": "UTA",
+      "opponent": "GSW",
+      "home": true,
+      "season_dk_avg": 8.79,
+      "last_5_dk_avg": 2.7,
+      "projected_minutes": 2.83,
+      "prior_games": 30,
+      "rest_days": 0
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

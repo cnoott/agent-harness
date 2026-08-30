@@ -1,0 +1,22 @@
+{
+  "sport": "NBA",
+  "format": "DraftKings-style points",
+  "as_of": "2024-02-01T18:00:00-05:00",
+  "slots": ["PG", "F", "UTIL"],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {"id":"fox","name":"De'Aaron Fox","positions":["PG"],"season_dk_avg":47.0,"last_5_dk_avg":49.1,"projected_minutes":36,"opponent_position_rank":24,"team_implied_total":119.5,"injury":"available"},
+    {"id":"maxey","name":"Tyrese Maxey","positions":["PG"],"season_dk_avg":42.3,"last_5_dk_avg":48.4,"projected_minutes":37,"opponent_position_rank":26,"team_implied_total":117.0,"injury":"available"},
+    {"id":"tatum","name":"Jayson Tatum","positions":["SF","PF"],"season_dk_avg":50.1,"last_5_dk_avg":45.0,"projected_minutes":36,"opponent_position_rank":10,"team_implied_total":114.0,"injury":"available"},
+    {"id":"barnes","name":"Scottie Barnes","positions":["SF","PF"],"season_dk_avg":44.2,"last_5_dk_avg":53.0,"projected_minutes":37,"opponent_position_rank":27,"team_implied_total":116.5,"injury":"available"},
+    {"id":"bam","name":"Bam Adebayo","positions":["C"],"season_dk_avg":43.3,"last_5_dk_avg":42.0,"projected_minutes":35,"opponent_position_rank":14,"team_implied_total":110.5,"injury":"available"},
+    {"id":"allen","name":"Jarrett Allen","positions":["C"],"season_dk_avg":38.1,"last_5_dk_avg":45.3,"projected_minutes":34,"opponent_position_rank":25,"team_implied_total":115.0,"injury":"available"}
+  ]
+}

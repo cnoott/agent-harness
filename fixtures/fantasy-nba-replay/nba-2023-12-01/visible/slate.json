@@ -1,0 +1,152 @@
+{
+  "id": "nba-2023-12-01",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2023-12-01T12:00:00-05:00",
+  "game_date": "2023-12-01",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "203471",
+      "name": "Dennis Schroder",
+      "positions": [
+        "G"
+      ],
+      "team": "TOR",
+      "opponent": "NYK",
+      "home": true,
+      "season_dk_avg": 31.62,
+      "last_5_dk_avg": 32.45,
+      "projected_minutes": 32.1,
+      "prior_games": 19,
+      "rest_days": 1
+    },
+    {
+      "id": "1630170",
+      "name": "Devin Vassell",
+      "positions": [
+        "G"
+      ],
+      "team": "SAS",
+      "opponent": "NOP",
+      "home": false,
+      "season_dk_avg": 28.52,
+      "last_5_dk_avg": 30.1,
+      "projected_minutes": 26.44,
+      "prior_games": 13,
+      "rest_days": 0
+    },
+    {
+      "id": "1629673",
+      "name": "Jordan Poole",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "ORL",
+      "home": false,
+      "season_dk_avg": 27.68,
+      "last_5_dk_avg": 32,
+      "projected_minutes": 30.22,
+      "prior_games": 17,
+      "rest_days": 1
+    },
+    {
+      "id": "1629640",
+      "name": "Keldon Johnson",
+      "positions": [
+        "F"
+      ],
+      "team": "SAS",
+      "opponent": "NOP",
+      "home": false,
+      "season_dk_avg": 32.74,
+      "last_5_dk_avg": 34.85,
+      "projected_minutes": 33.01,
+      "prior_games": 17,
+      "rest_days": 0
+    },
+    {
+      "id": "202699",
+      "name": "Tobias Harris",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "BOS",
+      "home": false,
+      "season_dk_avg": 31.17,
+      "last_5_dk_avg": 24.1,
+      "projected_minutes": 31.7,
+      "prior_games": 18,
+      "rest_days": 1
+    },
+    {
+      "id": "1630166",
+      "name": "Deni Avdija",
+      "positions": [
+        "F"
+      ],
+      "team": "WAS",
+      "opponent": "ORL",
+      "home": false,
+      "season_dk_avg": 26.35,
+      "last_5_dk_avg": 24.4,
+      "projected_minutes": 25.43,
+      "prior_games": 18,
+      "rest_days": 1
+    },
+    {
+      "id": "1629655",
+      "name": "Daniel Gafford",
+      "positions": [
+        "C"
+      ],
+      "team": "WAS",
+      "opponent": "ORL",
+      "home": false,
+      "season_dk_avg": 25.56,
+      "last_5_dk_avg": 28.85,
+      "projected_minutes": 26.97,
+      "prior_games": 16,
+      "rest_days": 1
+    },
+    {
+      "id": "1629048",
+      "name": "Goga Bitadze",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "WAS",
+      "home": true,
+      "season_dk_avg": 21.72,
+      "last_5_dk_avg": 25.8,
+      "projected_minutes": 24.99,
+      "prior_games": 16,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

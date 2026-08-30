@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-04-06",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-04-06T12:00:00-05:00",
+  "game_date": "2024-04-06",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1630178",
+      "name": "Tyrese Maxey",
+      "positions": [
+        "G"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 42.03,
+      "last_5_dk_avg": 46.1,
+      "projected_minutes": 41.35,
+      "prior_games": 66,
+      "rest_days": 1
+    },
+    {
+      "id": "1627741",
+      "name": "Buddy Hield",
+      "positions": [
+        "G"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 22.75,
+      "last_5_dk_avg": 16.5,
+      "projected_minutes": 19.76,
+      "prior_games": 27,
+      "rest_days": 1
+    },
+    {
+      "id": "200768",
+      "name": "Kyle Lowry",
+      "positions": [
+        "G"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 20.84,
+      "last_5_dk_avg": 22.35,
+      "projected_minutes": 30.6,
+      "prior_games": 20,
+      "rest_days": 1
+    },
+    {
+      "id": "1626162",
+      "name": "Kelly Oubre Jr.",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 26.5,
+      "last_5_dk_avg": 33.4,
+      "projected_minutes": 34.72,
+      "prior_games": 63,
+      "rest_days": 1
+    },
+    {
+      "id": "201587",
+      "name": "Nicolas Batum",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 16.51,
+      "last_5_dk_avg": 22.3,
+      "projected_minutes": 29.91,
+      "prior_games": 52,
+      "rest_days": 1
+    },
+    {
+      "id": "1630231",
+      "name": "KJ Martin",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 8.22,
+      "last_5_dk_avg": 12.3,
+      "projected_minutes": 17.31,
+      "prior_games": 56,
+      "rest_days": 1
+    },
+    {
+      "id": "1630194",
+      "name": "Paul Reed",
+      "positions": [
+        "C"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 19.63,
+      "last_5_dk_avg": 20.95,
+      "projected_minutes": 19.73,
+      "prior_games": 77,
+      "rest_days": 1
+    },
+    {
+      "id": "1628964",
+      "name": "Mo Bamba",
+      "positions": [
+        "C"
+      ],
+      "team": "PHI",
+      "opponent": "MEM",
+      "home": false,
+      "season_dk_avg": 13.56,
+      "last_5_dk_avg": 20.65,
+      "projected_minutes": 17.55,
+      "prior_games": 53,
+      "rest_days": 5
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-02-09",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-02-09T12:00:00-05:00",
+  "game_date": "2024-02-09",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1629673",
+      "name": "Jordan Poole",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "BOS",
+      "home": false,
+      "season_dk_avg": 25.84,
+      "last_5_dk_avg": 23.85,
+      "projected_minutes": 27.87,
+      "prior_games": 48,
+      "rest_days": 1
+    },
+    {
+      "id": "1628989",
+      "name": "Kevin Huerter",
+      "positions": [
+        "G"
+      ],
+      "team": "SAC",
+      "opponent": "DEN",
+      "home": true,
+      "season_dk_avg": 21.51,
+      "last_5_dk_avg": 22.6,
+      "projected_minutes": 30.98,
+      "prior_games": 48,
+      "rest_days": 1
+    },
+    {
+      "id": "1629018",
+      "name": "Gary Trent Jr.",
+      "positions": [
+        "G"
+      ],
+      "team": "TOR",
+      "opponent": "HOU",
+      "home": true,
+      "season_dk_avg": 18.45,
+      "last_5_dk_avg": 20.9,
+      "projected_minutes": 28.22,
+      "prior_games": 46,
+      "rest_days": 1
+    },
+    {
+      "id": "1630166",
+      "name": "Deni Avdija",
+      "positions": [
+        "F"
+      ],
+      "team": "WAS",
+      "opponent": "BOS",
+      "home": false,
+      "season_dk_avg": 27.55,
+      "last_5_dk_avg": 27.1,
+      "projected_minutes": 26.3,
+      "prior_games": 50,
+      "rest_days": 1
+    },
+    {
+      "id": "1631099",
+      "name": "Keegan Murray",
+      "positions": [
+        "F"
+      ],
+      "team": "SAC",
+      "opponent": "DEN",
+      "home": true,
+      "season_dk_avg": 27.39,
+      "last_5_dk_avg": 21.15,
+      "projected_minutes": 29.49,
+      "prior_games": 46,
+      "rest_days": 1
+    },
+    {
+      "id": "1626162",
+      "name": "Kelly Oubre Jr.",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "ATL",
+      "home": true,
+      "season_dk_avg": 23.28,
+      "last_5_dk_avg": 25.05,
+      "projected_minutes": 31.16,
+      "prior_games": 38,
+      "rest_days": 1
+    },
+    {
+      "id": "1630194",
+      "name": "Paul Reed",
+      "positions": [
+        "C"
+      ],
+      "team": "PHI",
+      "opponent": "ATL",
+      "home": true,
+      "season_dk_avg": 16.75,
+      "last_5_dk_avg": 16.15,
+      "projected_minutes": 21.14,
+      "prior_games": 50,
+      "rest_days": 1
+    },
+    {
+      "id": "1629007",
+      "name": "Jontay Porter",
+      "positions": [
+        "C"
+      ],
+      "team": "TOR",
+      "opponent": "HOU",
+      "home": true,
+      "season_dk_avg": 15.02,
+      "last_5_dk_avg": 12.3,
+      "projected_minutes": 11.02,
+      "prior_games": 14,
+      "rest_days": 9
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

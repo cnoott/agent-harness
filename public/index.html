@@ -14,9 +14,21 @@
       </div>
       <div class="header-actions">
         <span id="chat-id" class="muted"></span>
+        <button id="history-toggle" class="secondary icon-button" type="button" aria-expanded="false" aria-controls="history-drawer" title="Previous chats">☰</button>
         <button id="new-chat" class="secondary">New chat</button>
       </div>
     </header>
+    <aside id="history-drawer" class="history-drawer" aria-label="Previous chats" aria-hidden="true">
+      <div class="history-heading">
+        <div>
+          <p class="eyebrow">HISTORY</p>
+          <h2>Previous chats</h2>
+        </div>
+        <button id="history-close" class="secondary icon-button" type="button" aria-label="Close chat history">×</button>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </aside>
+    <div id="history-backdrop" class="history-backdrop hidden"></div>
     <main>
       <section class="chat-panel">
         <div id="messages" class="messages"></div>

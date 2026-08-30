@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-03-10",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-03-10T12:00:00-05:00",
+  "game_date": "2024-03-10",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1626145",
+      "name": "Tyus Jones",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "MIA",
+      "home": false,
+      "season_dk_avg": 28.56,
+      "last_5_dk_avg": 24.75,
+      "projected_minutes": 27.7,
+      "prior_games": 63,
+      "rest_days": 1
+    },
+    {
+      "id": "1629673",
+      "name": "Jordan Poole",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "MIA",
+      "home": false,
+      "season_dk_avg": 27.41,
+      "last_5_dk_avg": 38.95,
+      "projected_minutes": 30.96,
+      "prior_games": 61,
+      "rest_days": 1
+    },
+    {
+      "id": "1630581",
+      "name": "Josh Giddey",
+      "positions": [
+        "G"
+      ],
+      "team": "OKC",
+      "opponent": "MEM",
+      "home": true,
+      "season_dk_avg": 26.99,
+      "last_5_dk_avg": 24.75,
+      "projected_minutes": 24.44,
+      "prior_games": 62,
+      "rest_days": 1
+    },
+    {
+      "id": "1631099",
+      "name": "Keegan Murray",
+      "positions": [
+        "F"
+      ],
+      "team": "SAC",
+      "opponent": "HOU",
+      "home": true,
+      "season_dk_avg": 26.78,
+      "last_5_dk_avg": 23.15,
+      "projected_minutes": 35.39,
+      "prior_games": 58,
+      "rest_days": 2
+    },
+    {
+      "id": "1626162",
+      "name": "Kelly Oubre Jr.",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "NYK",
+      "home": false,
+      "season_dk_avg": 24.82,
+      "last_5_dk_avg": 30.45,
+      "projected_minutes": 30.53,
+      "prior_games": 50,
+      "rest_days": 1
+    },
+    {
+      "id": "1629652",
+      "name": "Luguentz Dort",
+      "positions": [
+        "F"
+      ],
+      "team": "OKC",
+      "opponent": "MEM",
+      "home": true,
+      "season_dk_avg": 20.07,
+      "last_5_dk_avg": 19.35,
+      "projected_minutes": 30.27,
+      "prior_games": 61,
+      "rest_days": 1
+    },
+    {
+      "id": "1629048",
+      "name": "Goga Bitadze",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "IND",
+      "home": true,
+      "season_dk_avg": 17.65,
+      "last_5_dk_avg": 9.7,
+      "projected_minutes": 12.2,
+      "prior_games": 52,
+      "rest_days": 1
+    },
+    {
+      "id": "1626158",
+      "name": "Richaun Holmes",
+      "positions": [
+        "C"
+      ],
+      "team": "WAS",
+      "opponent": "MIA",
+      "home": false,
+      "season_dk_avg": 12.98,
+      "last_5_dk_avg": 16.75,
+      "projected_minutes": 18.34,
+      "prior_games": 10,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

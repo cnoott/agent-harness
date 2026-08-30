@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-01-09",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-01-09T12:00:00-05:00",
+  "game_date": "2024-01-09",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1628368",
+      "name": "De'Aaron Fox",
+      "positions": [
+        "G"
+      ],
+      "team": "SAC",
+      "opponent": "DET",
+      "home": false,
+      "season_dk_avg": 45.47,
+      "last_5_dk_avg": 32.45,
+      "projected_minutes": 35.81,
+      "prior_games": 29,
+      "rest_days": 1
+    },
+    {
+      "id": "1630567",
+      "name": "Scottie Barnes",
+      "positions": [
+        "G"
+      ],
+      "team": "TOR",
+      "opponent": "LAL",
+      "home": false,
+      "season_dk_avg": 44.49,
+      "last_5_dk_avg": 34.05,
+      "projected_minutes": 34.16,
+      "prior_games": 36,
+      "rest_days": 1
+    },
+    {
+      "id": "1629014",
+      "name": "Anfernee Simons",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "NYK",
+      "home": false,
+      "season_dk_avg": 38.36,
+      "last_5_dk_avg": 34.4,
+      "projected_minutes": 32.81,
+      "prior_games": 14,
+      "rest_days": 1
+    },
+    {
+      "id": "203084",
+      "name": "Harrison Barnes",
+      "positions": [
+        "F"
+      ],
+      "team": "SAC",
+      "opponent": "DET",
+      "home": false,
+      "season_dk_avg": 18.46,
+      "last_5_dk_avg": 17.05,
+      "projected_minutes": 27.23,
+      "prior_games": 35,
+      "rest_days": 1
+    },
+    {
+      "id": "1641739",
+      "name": "Toumani Camara",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "NYK",
+      "home": false,
+      "season_dk_avg": 17.12,
+      "last_5_dk_avg": 20.2,
+      "projected_minutes": 26.07,
+      "prior_games": 34,
+      "rest_days": 1
+    },
+    {
+      "id": "1629680",
+      "name": "Matisse Thybulle",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "NYK",
+      "home": false,
+      "season_dk_avg": 15.12,
+      "last_5_dk_avg": 13.25,
+      "projected_minutes": 24.39,
+      "prior_games": 34,
+      "rest_days": 3
+    },
+    {
+      "id": "1627734",
+      "name": "Domantas Sabonis",
+      "positions": [
+        "C"
+      ],
+      "team": "SAC",
+      "opponent": "DET",
+      "home": false,
+      "season_dk_avg": 48.19,
+      "last_5_dk_avg": 54.8,
+      "projected_minutes": 35.93,
+      "prior_games": 35,
+      "rest_days": 1
+    },
+    {
+      "id": "1629048",
+      "name": "Goga Bitadze",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 22.18,
+      "last_5_dk_avg": 26.45,
+      "projected_minutes": 26.85,
+      "prior_games": 32,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

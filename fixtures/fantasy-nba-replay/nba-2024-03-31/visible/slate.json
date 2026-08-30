@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-03-31",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-03-31T12:00:00-05:00",
+  "game_date": "2024-03-31",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1630200",
+      "name": "Tre Jones",
+      "positions": [
+        "G"
+      ],
+      "team": "SAS",
+      "opponent": "GSW",
+      "home": true,
+      "season_dk_avg": 24.6,
+      "last_5_dk_avg": 22.35,
+      "projected_minutes": 29.61,
+      "prior_games": 69,
+      "rest_days": 1
+    },
+    {
+      "id": "1627741",
+      "name": "Buddy Hield",
+      "positions": [
+        "G"
+      ],
+      "team": "PHI",
+      "opponent": "TOR",
+      "home": false,
+      "season_dk_avg": 23.98,
+      "last_5_dk_avg": 18,
+      "projected_minutes": 22.41,
+      "prior_games": 24,
+      "rest_days": 1
+    },
+    {
+      "id": "1641718",
+      "name": "Keyonte George",
+      "positions": [
+        "G"
+      ],
+      "team": "UTA",
+      "opponent": "SAC",
+      "home": false,
+      "season_dk_avg": 23.11,
+      "last_5_dk_avg": 23.05,
+      "projected_minutes": 33.66,
+      "prior_games": 67,
+      "rest_days": 1
+    },
+    {
+      "id": "1629628",
+      "name": "RJ Barrett",
+      "positions": [
+        "F"
+      ],
+      "team": "TOR",
+      "opponent": "PHI",
+      "home": true,
+      "season_dk_avg": 35.48,
+      "last_5_dk_avg": 36.05,
+      "projected_minutes": 34.66,
+      "prior_games": 27,
+      "rest_days": 19
+    },
+    {
+      "id": "1631114",
+      "name": "Jalen Williams",
+      "positions": [
+        "F"
+      ],
+      "team": "OKC",
+      "opponent": "NYK",
+      "home": false,
+      "season_dk_avg": 33.68,
+      "last_5_dk_avg": 36.35,
+      "projected_minutes": 31.55,
+      "prior_games": 66,
+      "rest_days": 1
+    },
+    {
+      "id": "202699",
+      "name": "Tobias Harris",
+      "positions": [
+        "F"
+      ],
+      "team": "PHI",
+      "opponent": "TOR",
+      "home": false,
+      "season_dk_avg": 32.26,
+      "last_5_dk_avg": 33.05,
+      "projected_minutes": 35.47,
+      "prior_games": 65,
+      "rest_days": 1
+    },
+    {
+      "id": "1631117",
+      "name": "Walker Kessler",
+      "positions": [
+        "C"
+      ],
+      "team": "UTA",
+      "opponent": "SAC",
+      "home": false,
+      "season_dk_avg": 24.29,
+      "last_5_dk_avg": 20.6,
+      "projected_minutes": 22.35,
+      "prior_games": 62,
+      "rest_days": 1
+    },
+    {
+      "id": "203482",
+      "name": "Kelly Olynyk",
+      "positions": [
+        "C"
+      ],
+      "team": "TOR",
+      "opponent": "PHI",
+      "home": true,
+      "season_dk_avg": 23.83,
+      "last_5_dk_avg": 30.9,
+      "projected_minutes": 29.28,
+      "prior_games": 71,
+      "rest_days": 3
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

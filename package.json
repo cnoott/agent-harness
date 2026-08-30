@@ -6,6 +6,12 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
+    "fantasy:grade": "tsx scripts/grade-fantasy-lineup.ts",
+    "fantasy:fixtures": "tsx scripts/build-nba-replay-fixtures.ts",
+    "fantasy:replay": "tsx scripts/run-fantasy-replays.ts",
+    "fantasy:shadow:register": "tsx scripts/register-fantasy-shadow.ts",
+    "fantasy:shadow:predict": "tsx scripts/predict-fantasy-shadow.ts",
+    "fantasy:shadow:grade": "tsx scripts/grade-fantasy-shadow.ts",
     "sandbox:build": "docker build -t sandbox-harness:local -f sandbox/Dockerfile sandbox"
   },
   "dependencies": {

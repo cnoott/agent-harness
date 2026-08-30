@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-01-27",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-01-27T12:00:00-05:00",
+  "game_date": "2024-01-27",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1628368",
+      "name": "De'Aaron Fox",
+      "positions": [
+        "G"
+      ],
+      "team": "SAC",
+      "opponent": "DAL",
+      "home": false,
+      "season_dk_avg": 43.64,
+      "last_5_dk_avg": 39.2,
+      "projected_minutes": 37.91,
+      "prior_games": 37,
+      "rest_days": 1
+    },
+    {
+      "id": "203903",
+      "name": "Jordan Clarkson",
+      "positions": [
+        "G"
+      ],
+      "team": "UTA",
+      "opponent": "CHA",
+      "home": false,
+      "season_dk_avg": 30.4,
+      "last_5_dk_avg": 30.05,
+      "projected_minutes": 30.44,
+      "prior_games": 36,
+      "rest_days": 1
+    },
+    {
+      "id": "1630170",
+      "name": "Devin Vassell",
+      "positions": [
+        "G"
+      ],
+      "team": "SAS",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 29.66,
+      "last_5_dk_avg": 34.75,
+      "projected_minutes": 34.8,
+      "prior_games": 40,
+      "rest_days": 0
+    },
+    {
+      "id": "1631099",
+      "name": "Keegan Murray",
+      "positions": [
+        "F"
+      ],
+      "team": "SAC",
+      "opponent": "DAL",
+      "home": false,
+      "season_dk_avg": 28.43,
+      "last_5_dk_avg": 27.7,
+      "projected_minutes": 32.62,
+      "prior_games": 39,
+      "rest_days": 1
+    },
+    {
+      "id": "1630166",
+      "name": "Deni Avdija",
+      "positions": [
+        "F"
+      ],
+      "team": "WAS",
+      "opponent": "DET",
+      "home": false,
+      "season_dk_avg": 27.74,
+      "last_5_dk_avg": 29.45,
+      "projected_minutes": 28.36,
+      "prior_games": 44,
+      "rest_days": 1
+    },
+    {
+      "id": "1631110",
+      "name": "Jeremy Sochan",
+      "positions": [
+        "F"
+      ],
+      "team": "SAS",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 26.29,
+      "last_5_dk_avg": 34.55,
+      "projected_minutes": 30.41,
+      "prior_games": 45,
+      "rest_days": 0
+    },
+    {
+      "id": "1630194",
+      "name": "Paul Reed",
+      "positions": [
+        "C"
+      ],
+      "team": "PHI",
+      "opponent": "DEN",
+      "home": false,
+      "season_dk_avg": 15.74,
+      "last_5_dk_avg": 13.95,
+      "projected_minutes": 13.31,
+      "prior_games": 43,
+      "rest_days": 1
+    },
+    {
+      "id": "1631230",
+      "name": "Dominick Barlow",
+      "positions": [
+        "C"
+      ],
+      "team": "SAS",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 11.68,
+      "last_5_dk_avg": 17.75,
+      "projected_minutes": 19.36,
+      "prior_games": 19,
+      "rest_days": 7
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

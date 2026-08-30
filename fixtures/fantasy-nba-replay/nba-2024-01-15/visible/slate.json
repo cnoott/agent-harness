@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-01-15",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-01-15T12:00:00-05:00",
+  "game_date": "2024-01-15",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1630581",
+      "name": "Josh Giddey",
+      "positions": [
+        "G"
+      ],
+      "team": "OKC",
+      "opponent": "LAL",
+      "home": false,
+      "season_dk_avg": 28.1,
+      "last_5_dk_avg": 33.55,
+      "projected_minutes": 24.04,
+      "prior_games": 37,
+      "rest_days": 1
+    },
+    {
+      "id": "1626145",
+      "name": "Tyus Jones",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "DET",
+      "home": true,
+      "season_dk_avg": 26.94,
+      "last_5_dk_avg": 27.45,
+      "projected_minutes": 28.96,
+      "prior_games": 38,
+      "rest_days": 1
+    },
+    {
+      "id": "1629673",
+      "name": "Jordan Poole",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "DET",
+      "home": true,
+      "season_dk_avg": 26.93,
+      "last_5_dk_avg": 27.45,
+      "projected_minutes": 28.39,
+      "prior_games": 37,
+      "rest_days": 1
+    },
+    {
+      "id": "1631094",
+      "name": "Paolo Banchero",
+      "positions": [
+        "F"
+      ],
+      "team": "ORL",
+      "opponent": "NYK",
+      "home": false,
+      "season_dk_avg": 40.96,
+      "last_5_dk_avg": 48.85,
+      "projected_minutes": 38.65,
+      "prior_games": 39,
+      "rest_days": 1
+    },
+    {
+      "id": "1628374",
+      "name": "Lauri Markkanen",
+      "positions": [
+        "F"
+      ],
+      "team": "UTA",
+      "opponent": "IND",
+      "home": true,
+      "season_dk_avg": 40.05,
+      "last_5_dk_avg": 47.25,
+      "projected_minutes": 32.34,
+      "prior_games": 31,
+      "rest_days": 1
+    },
+    {
+      "id": "1627783",
+      "name": "Pascal Siakam",
+      "positions": [
+        "F"
+      ],
+      "team": "TOR",
+      "opponent": "BOS",
+      "home": true,
+      "season_dk_avg": 38.65,
+      "last_5_dk_avg": 36.15,
+      "projected_minutes": 31.88,
+      "prior_games": 38,
+      "rest_days": 2
+    },
+    {
+      "id": "1628381",
+      "name": "John Collins",
+      "positions": [
+        "C"
+      ],
+      "team": "UTA",
+      "opponent": "IND",
+      "home": true,
+      "season_dk_avg": 27.07,
+      "last_5_dk_avg": 28.5,
+      "projected_minutes": 25.48,
+      "prior_games": 37,
+      "rest_days": 1
+    },
+    {
+      "id": "1631117",
+      "name": "Walker Kessler",
+      "positions": [
+        "C"
+      ],
+      "team": "UTA",
+      "opponent": "IND",
+      "home": true,
+      "season_dk_avg": 25.08,
+      "last_5_dk_avg": 20.2,
+      "projected_minutes": 17.86,
+      "prior_games": 33,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

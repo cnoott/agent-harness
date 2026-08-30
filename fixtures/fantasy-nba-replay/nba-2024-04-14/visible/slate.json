@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-04-14",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-04-14T12:00:00-05:00",
+  "game_date": "2024-04-14",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1629673",
+      "name": "Jordan Poole",
+      "positions": [
+        "G"
+      ],
+      "team": "WAS",
+      "opponent": "BOS",
+      "home": false,
+      "season_dk_avg": 29.02,
+      "last_5_dk_avg": 43.1,
+      "projected_minutes": 35.52,
+      "prior_games": 78,
+      "rest_days": 4
+    },
+    {
+      "id": "1630581",
+      "name": "Josh Giddey",
+      "positions": [
+        "G"
+      ],
+      "team": "OKC",
+      "opponent": "DAL",
+      "home": true,
+      "season_dk_avg": 28.98,
+      "last_5_dk_avg": 37.6,
+      "projected_minutes": 30.15,
+      "prior_games": 79,
+      "rest_days": 3
+    },
+    {
+      "id": "1631101",
+      "name": "Shaedon Sharpe",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "SAC",
+      "home": false,
+      "season_dk_avg": 27.97,
+      "last_5_dk_avg": 23.4,
+      "projected_minutes": 25.9,
+      "prior_games": 32,
+      "rest_days": 93
+    },
+    {
+      "id": "1629628",
+      "name": "RJ Barrett",
+      "positions": [
+        "F"
+      ],
+      "team": "TOR",
+      "opponent": "MIA",
+      "home": false,
+      "season_dk_avg": 36.58,
+      "last_5_dk_avg": 42.5,
+      "projected_minutes": 32.44,
+      "prior_games": 32,
+      "rest_days": 1
+    },
+    {
+      "id": "1631114",
+      "name": "Jalen Williams",
+      "positions": [
+        "F"
+      ],
+      "team": "OKC",
+      "opponent": "DAL",
+      "home": true,
+      "season_dk_avg": 33.79,
+      "last_5_dk_avg": 34.65,
+      "projected_minutes": 30,
+      "prior_games": 70,
+      "rest_days": 1
+    },
+    {
+      "id": "1630532",
+      "name": "Franz Wagner",
+      "positions": [
+        "F"
+      ],
+      "team": "ORL",
+      "opponent": "MIL",
+      "home": true,
+      "season_dk_avg": 33.78,
+      "last_5_dk_avg": 32.65,
+      "projected_minutes": 29.92,
+      "prior_games": 71,
+      "rest_days": 1
+    },
+    {
+      "id": "1628380",
+      "name": "Zach Collins",
+      "positions": [
+        "C"
+      ],
+      "team": "SAS",
+      "opponent": "DET",
+      "home": true,
+      "season_dk_avg": 23.56,
+      "last_5_dk_avg": 26.45,
+      "projected_minutes": 21.49,
+      "prior_games": 68,
+      "rest_days": 1
+    },
+    {
+      "id": "1630194",
+      "name": "Paul Reed",
+      "positions": [
+        "C"
+      ],
+      "team": "PHI",
+      "opponent": "BKN",
+      "home": true,
+      "season_dk_avg": 19.78,
+      "last_5_dk_avg": 21.8,
+      "projected_minutes": 19.41,
+      "prior_games": 81,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

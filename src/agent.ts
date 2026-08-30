@@ -120,6 +120,21 @@ const tools: any[] = [
 
 export type RunControl = { cancelled: boolean };
 export type Emit = (event: ToolEvent) => void;
+export type RunStats = {
+  responseCount: number;
+  toolCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+export type RunOptions = {
+  allowedTools?: string[];
+  sandboxNetworkEnabled?: boolean;
+};
+
+export function emptyRunStats(): RunStats {
+  return { responseCount: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+}
 
 function rateLimitDelayMs(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -183,13 +198,13 @@ async function refreshMemoryIfNeeded(client: OpenAI, model: string, session: Cha
   }
 }
 
-async function callTool(chatId: string, name: string, args: Record<string, unknown>) {
-  if (name === "exec") return execute(chatId, String(args.command));
+async function callTool(chatId: string, name: string, args: Record<string, unknown>, options: RunOptions) {
+  if (name === "exec") return execute(chatId, String(args.command), { networkEnabled: options.sandboxNetworkEnabled });
   if (name.startsWith("browser_")) return runBrowserTool(chatId, name as any, args);
   throw new Error(`Unknown tool: ${name}`);
 }
 
-export async function runAgent(session: ChatSession, userText: string, emit: Emit, control: RunControl) {
+export async function runAgent(session: ChatSession, userText: string, emit: Emit, control: RunControl, stats?: RunStats, options: RunOptions = {}) {
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is missing. Add it to .env before running the agent.");
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
@@ -200,6 +215,10 @@ export async function runAgent(session: ChatSession, userText: string, emit: Emi
   let previousResponseId: string | undefined;
   let input: any = buildTurnContext(session, userText);
   let finalText = "";
+  const enabledTools = options.allowedTools ? tools.filter((tool) => options.allowedTools!.includes(tool.name)) : tools;
+  const runInstructions = options.allowedTools && !options.allowedTools.some((name) => name.startsWith("browser_"))
+    ? `${instructions} Browser access is intentionally unavailable for this run.`
+    : instructions;
   const unsubscribePreview = subscribeBrowserPreview(session.id, (preview) => emit({ type: "browser_frame", data: preview }));
 
   try {
@@ -209,8 +228,8 @@ export async function runAgent(session: ChatSession, userText: string, emit: Emi
       try {
         stream = await client.responses.create({
           model,
-          instructions,
-          tools,
+          instructions: runInstructions,
+          tools: enabledTools,
           tool_choice: "auto",
           parallel_tool_calls: false,
           store: true,
@@ -242,8 +261,15 @@ export async function runAgent(session: ChatSession, userText: string, emit: Emi
 
     if (control.cancelled) break;
     if (!response) throw new Error("Response ended before completion");
+    if (stats) {
+      stats.responseCount += 1;
+      stats.inputTokens += Number(response.usage?.input_tokens || 0);
+      stats.outputTokens += Number(response.usage?.output_tokens || 0);
+      stats.totalTokens += Number(response.usage?.total_tokens || 0);
+    }
     previousResponseId = response.id;
     const calls = response.output.filter((item: any) => item.type === "function_call");
+    if (stats) stats.toolCalls += calls.length;
     if (calls.length === 0) {
       return finalText || response.output_text || "";
     }
@@ -254,7 +280,7 @@ export async function runAgent(session: ChatSession, userText: string, emit: Emi
       const args = JSON.parse(call.arguments || "{}");
       emit({ type: "tool_start", name: call.name, data: args });
       try {
-        const result = await callTool(session.id, call.name, args);
+        const result = await callTool(session.id, call.name, args, options);
         const compactResult = await compactToolResult(session.id, call.call_id, result);
         emit({ type: "tool_end", name: call.name, data: compactResult });
         outputs.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(compactResult) });

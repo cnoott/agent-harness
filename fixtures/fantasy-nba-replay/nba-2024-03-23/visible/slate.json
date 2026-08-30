@@ -1,0 +1,152 @@
+{
+  "id": "nba-2024-03-23",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2024-03-23T12:00:00-05:00",
+  "game_date": "2024-03-23",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1630625",
+      "name": "Dalano Banton",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "DEN",
+      "home": true,
+      "season_dk_avg": 25.51,
+      "last_5_dk_avg": 30.1,
+      "projected_minutes": 33.88,
+      "prior_games": 19,
+      "rest_days": 0
+    },
+    {
+      "id": "1630200",
+      "name": "Tre Jones",
+      "positions": [
+        "G"
+      ],
+      "team": "SAS",
+      "opponent": "PHX",
+      "home": true,
+      "season_dk_avg": 24.94,
+      "last_5_dk_avg": 35.25,
+      "projected_minutes": 33.32,
+      "prior_games": 65,
+      "rest_days": 0
+    },
+    {
+      "id": "1630703",
+      "name": "Scoot Henderson",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "DEN",
+      "home": true,
+      "season_dk_avg": 24.24,
+      "last_5_dk_avg": 31.1,
+      "projected_minutes": 30,
+      "prior_games": 51,
+      "rest_days": 0
+    },
+    {
+      "id": "1631094",
+      "name": "Paolo Banchero",
+      "positions": [
+        "F"
+      ],
+      "team": "ORL",
+      "opponent": "SAC",
+      "home": true,
+      "season_dk_avg": 40.61,
+      "last_5_dk_avg": 38.85,
+      "projected_minutes": 33.25,
+      "prior_games": 68,
+      "rest_days": 1
+    },
+    {
+      "id": "1628398",
+      "name": "Kyle Kuzma",
+      "positions": [
+        "F"
+      ],
+      "team": "WAS",
+      "opponent": "TOR",
+      "home": true,
+      "season_dk_avg": 38.02,
+      "last_5_dk_avg": 39.1,
+      "projected_minutes": 34.27,
+      "prior_games": 66,
+      "rest_days": 1
+    },
+    {
+      "id": "1630532",
+      "name": "Franz Wagner",
+      "positions": [
+        "F"
+      ],
+      "team": "ORL",
+      "opponent": "SAC",
+      "home": true,
+      "season_dk_avg": 34.38,
+      "last_5_dk_avg": 30.75,
+      "projected_minutes": 28.08,
+      "prior_games": 62,
+      "rest_days": 1
+    },
+    {
+      "id": "1631117",
+      "name": "Walker Kessler",
+      "positions": [
+        "C"
+      ],
+      "team": "UTA",
+      "opponent": "HOU",
+      "home": false,
+      "season_dk_avg": 24.66,
+      "last_5_dk_avg": 23.4,
+      "projected_minutes": 27.07,
+      "prior_games": 58,
+      "rest_days": 1
+    },
+    {
+      "id": "1628976",
+      "name": "Wendell Carter Jr.",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "SAC",
+      "home": true,
+      "season_dk_avg": 24.28,
+      "last_5_dk_avg": 26.05,
+      "projected_minutes": 25.79,
+      "prior_games": 43,
+      "rest_days": 1
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}

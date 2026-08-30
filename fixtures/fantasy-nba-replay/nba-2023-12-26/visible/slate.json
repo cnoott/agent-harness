@@ -1,0 +1,152 @@
+{
+  "id": "nba-2023-12-26",
+  "sport": "NBA",
+  "format": "DraftKings-style points (simplified slots, no salary cap)",
+  "as_of": "2023-12-26T12:00:00-05:00",
+  "game_date": "2023-12-26",
+  "slots": [
+    "G",
+    "F",
+    "UTIL"
+  ],
+  "scoring": {
+    "points": 1,
+    "rebounds": 1.25,
+    "assists": 1.5,
+    "steals": 2,
+    "blocks": 2,
+    "turnovers": -0.5
+  },
+  "players": [
+    {
+      "id": "1628983",
+      "name": "Shai Gilgeous-Alexander",
+      "positions": [
+        "G"
+      ],
+      "team": "OKC",
+      "opponent": "MIN",
+      "home": true,
+      "season_dk_avg": 53.61,
+      "last_5_dk_avg": 56.7,
+      "projected_minutes": 34.78,
+      "prior_games": 26,
+      "rest_days": 2
+    },
+    {
+      "id": "1628368",
+      "name": "De'Aaron Fox",
+      "positions": [
+        "G"
+      ],
+      "team": "SAC",
+      "opponent": "POR",
+      "home": false,
+      "season_dk_avg": 47.19,
+      "last_5_dk_avg": 48.95,
+      "projected_minutes": 32.97,
+      "prior_games": 22,
+      "rest_days": 2
+    },
+    {
+      "id": "1629014",
+      "name": "Anfernee Simons",
+      "positions": [
+        "G"
+      ],
+      "team": "POR",
+      "opponent": "SAC",
+      "home": true,
+      "season_dk_avg": 39.7,
+      "last_5_dk_avg": 43.7,
+      "projected_minutes": 36.12,
+      "prior_games": 10,
+      "rest_days": 2
+    },
+    {
+      "id": "1630532",
+      "name": "Franz Wagner",
+      "positions": [
+        "F"
+      ],
+      "team": "ORL",
+      "opponent": "WAS",
+      "home": false,
+      "season_dk_avg": 35.29,
+      "last_5_dk_avg": 35.25,
+      "projected_minutes": 35.65,
+      "prior_games": 28,
+      "rest_days": 2
+    },
+    {
+      "id": "203924",
+      "name": "Jerami Grant",
+      "positions": [
+        "F"
+      ],
+      "team": "POR",
+      "opponent": "SAC",
+      "home": true,
+      "season_dk_avg": 32.69,
+      "last_5_dk_avg": 33.55,
+      "projected_minutes": 35.76,
+      "prior_games": 24,
+      "rest_days": 2
+    },
+    {
+      "id": "1629640",
+      "name": "Keldon Johnson",
+      "positions": [
+        "F"
+      ],
+      "team": "SAS",
+      "opponent": "UTA",
+      "home": true,
+      "season_dk_avg": 32.54,
+      "last_5_dk_avg": 29.35,
+      "projected_minutes": 30.57,
+      "prior_games": 27,
+      "rest_days": 2
+    },
+    {
+      "id": "1629048",
+      "name": "Goga Bitadze",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "WAS",
+      "home": false,
+      "season_dk_avg": 21.64,
+      "last_5_dk_avg": 22.95,
+      "projected_minutes": 21.11,
+      "prior_games": 25,
+      "rest_days": 2
+    },
+    {
+      "id": "1628976",
+      "name": "Wendell Carter Jr.",
+      "positions": [
+        "C"
+      ],
+      "team": "ORL",
+      "opponent": "WAS",
+      "home": false,
+      "season_dk_avg": 21.16,
+      "last_5_dk_avg": 20.7,
+      "projected_minutes": 24.01,
+      "prior_games": 8,
+      "rest_days": 2
+    }
+  ],
+  "provenance": {
+    "source_url": "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_box_scores_2010_2024_part_3.csv",
+    "visible_features": "Computed only from each player's games before game_date.",
+    "limitations": [
+      "No historical injury reports",
+      "No historical betting lines",
+      "Simplified G/F/C eligibility",
+      "No DraftKings salary cap or bonuses"
+    ]
+  }
+}
