@@ -5,6 +5,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { emptyRunStats, runAgent } from "../src/agent.js";
+import { getModelConfig } from "../src/model.js";
 import { stopSandbox } from "../src/sandbox.js";
 import { createSession, workspacePath } from "../src/store.js";
 import { gradeRecommendation, legalLineups, lineupIds, readFixture } from "./lib/fantasy-eval.js";
@@ -72,7 +73,7 @@ async function main() {
   const selected = manifest.slates.slice(0, limit);
   const runAgentFlag = process.argv.includes("--agent");
   const ledger = path.resolve(option("--ledger", ".data/evals/fantasy-replays.sqlite")!);
-  const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
+  const { model } = getModelConfig();
   initializeLedger(ledger);
   const results: Array<Record<string, unknown>> = [];
 

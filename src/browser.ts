@@ -1,8 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { ensureBinary, getDefaultStealthArgs } from "cloakbrowser";
+import { launchPersistentContext } from "cloakbrowser";
 import { workspacePath } from "./store.js";
+import { getModelConfig } from "./model.js";
 
 type BrowserTool = "browser_open" | "browser_observe" | "browser_act" | "browser_extract" | "browser_screenshot";
 type BrowserControlAction =
@@ -13,7 +14,14 @@ type BrowserControlAction =
   | { type: "back" };
 
 export type BrowserPreview = { image: string; title: string; url: string; capturedAt: string };
-type BrowserSession = { stagehand: any; page: any; previewTimer?: NodeJS.Timeout; previewInFlight?: boolean };
+type BrowserSession = {
+  stagehand: any;
+  browserContext: Awaited<ReturnType<typeof launchPersistentContext>>;
+  page: any;
+  previewTimer?: NodeJS.Timeout;
+  previewInFlight?: boolean;
+  failedAction?: { instruction: string; pageState: string };
+};
 const sessions = new Map<string, BrowserSession>();
 const previewListeners = new Map<string, Set<(preview: BrowserPreview) => void>>();
 
@@ -68,70 +76,164 @@ async function readPage(page: any, mode: "content" | "actions") {
         text: (document.body?.innerText || "").slice(0, 80000),
         links: Array.from(document.querySelectorAll("a[href]")).slice(0, 80).map((a) => ({ text: (a.innerText || a.getAttribute("aria-label") || "").trim().slice(0, 300), href: a.href }))
       }))()`
-    : `(() => JSON.stringify(Array.from(document.querySelectorAll("a, button, input, select, textarea")).slice(0, 100).map((el) => ({
-        tag: el.tagName.toLowerCase(),
-        text: (el.innerText || el.getAttribute("aria-label") || el.getAttribute("placeholder") || "").trim().slice(0, 200),
-        href: el instanceof HTMLAnchorElement ? el.href : undefined,
-        type: el.getAttribute("type")
-      }))))()`;
+    : `(() => {
+        const isVisible = (el) => {
+          if (el.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+          if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
+          const bounds = el.getBoundingClientRect();
+          return bounds.width > 0 && bounds.height > 0;
+        };
+        const walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+        let text = "";
+        let node;
+        while (text.length < 4000 && (node = walker.nextNode())) {
+          if (node.parentElement && isVisible(node.parentElement) && node.textContent.trim()) {
+            text += node.textContent.trim() + "\\n";
+          }
+        }
+        return JSON.stringify({
+          title: document.title,
+          url: location.href,
+          text: text.slice(0, 4000),
+          actions: Array.from(document.querySelectorAll("a, button, input, select, textarea"))
+            .filter(isVisible)
+            .slice(0, 100)
+            .map((el) => ({
+              tag: el.tagName.toLowerCase(),
+              text: (el.innerText || el.getAttribute("aria-label") || el.getAttribute("placeholder") || "").trim().slice(0, 200),
+              href: el instanceof HTMLAnchorElement ? el.href : undefined,
+              type: el.getAttribute("type")
+            }))
+        });
+      })()`;
   const response = await page.sendCDP("Runtime.evaluate", { expression, returnByValue: true });
+  if (response?.exceptionDetails) {
+    throw new Error(response.exceptionDetails.exception?.description || response.exceptionDetails.text || "Failed to read browser page.");
+  }
   const value = response?.result?.value;
-  return typeof value === "string" ? JSON.parse(value) : value;
+  if (typeof value !== "string") throw new Error("Browser page observation did not return JSON.");
+  return JSON.parse(value);
 }
 
 async function getBrowser(chatId: string): Promise<BrowserSession> {
   const existing = sessions.get(chatId);
   if (existing) return existing;
 
+  const { provider, model, apiKey } = getModelConfig(true);
   const { Stagehand } = await import("@browserbasehq/stagehand");
-  const executablePath = await ensureBinary();
-  const stagehand = new (Stagehand as any)({
-    env: "LOCAL",
-    headless: true,
-    modelName: process.env.OPENAI_MODEL || "gpt-5.6-luna",
-    localBrowserLaunchOptions: {
-      executablePath,
-      args: getDefaultStealthArgs(),
-      headless: true,
-    },
+  const userDataDir = path.join(workspacePath(chatId), "..", "browser-profile");
+  await mkdir(userDataDir, { recursive: true, mode: 0o700 });
+  const browserContext = await launchPersistentContext({
+    userDataDir,
+    headless: false,
+    viewport: { width: 1288, height: 711 },
+    args: ["--remote-debugging-port=0"],
   });
-  await stagehand.init();
+  let stagehand: any;
+  try {
+    const [port, browserPath] = (await readFile(path.join(userDataDir, "DevToolsActivePort"), "utf8")).trim().split(/\r?\n/);
+    stagehand = new (Stagehand as any)({
+      env: "LOCAL",
+      headless: false,
+      model: { modelName: `${provider === "gemini" ? "google" : "openai"}/${model}`, apiKey },
+      localBrowserLaunchOptions: { cdpUrl: `ws://127.0.0.1:${port}${browserPath}` },
+    });
+    await stagehand.init();
+  } catch (error) {
+    await Promise.allSettled([browserContext.close(), stagehand?.close()]);
+    throw error;
+  }
   const page = stagehand.page ?? stagehand.context.pages()[0];
-  const session = { stagehand, page };
+  const session: BrowserSession = { stagehand, browserContext, page };
   sessions.set(chatId, session);
+  browserContext.on("close", () => {
+    if (session.previewTimer) clearInterval(session.previewTimer);
+    if (sessions.get(chatId) === session) sessions.delete(chatId);
+    void stagehand.close().catch(() => {});
+  });
   if (previewListeners.get(chatId)?.size) startPreviewTimer(chatId, session);
   return session;
 }
 
+async function captureScreenshot(chatId: string, page: any) {
+  const screenshots = path.join(workspacePath(chatId), ".harness", "screenshots");
+  await mkdir(screenshots, { recursive: true });
+  const filename = `${randomUUID()}.png`;
+  const image = await page.screenshot({ type: "png", fullPage: false, scale: "css" });
+  await writeFile(path.join(screenshots, filename), image);
+  return {
+    url: page.url(),
+    title: await page.title(),
+    screenshot: `/workspace/.harness/screenshots/${filename}`,
+    capturedAt: new Date().toISOString(),
+    modelImage: { mimeType: "image/png", data: image.toString("base64") },
+    note: "Current viewport screenshot attached for visual inspection and saved in the workspace. Use browser_extract for longer page content.",
+  };
+}
+
 export async function runBrowserTool(chatId: string, name: BrowserTool, args: Record<string, unknown>) {
-  const { page, stagehand } = await getBrowser(chatId);
+  const session = await getBrowser(chatId);
+  const { page, stagehand } = session;
   if (name === "browser_open") {
     await page.goto(String(args.url), { waitUntil: "domcontentloaded" });
+    session.failedAction = undefined;
     await publishPreview(chatId);
     return { url: page.url(), title: await page.title() };
   }
   // Keep page reading deterministic. Stagehand's AI extraction builds full
   // accessibility snapshots, which is needlessly expensive for a general
   // browsing tool and can exceed a low-rate-limit account's token budget.
-  if (name === "browser_observe") return { instruction: String(args.instruction), actions: await readPage(page, "actions") };
+  if (name === "browser_observe") {
+    const observation = await readPage(page, "actions");
+    session.failedAction = undefined;
+    return { instruction: String(args.instruction), ...observation };
+  }
   if (name === "browser_act") {
-    const result = await stagehand.act(String(args.instruction));
+    const instruction = String(args.instruction).trim();
+    if (session.failedAction?.instruction === instruction) {
+      const observation = await readPage(page, "actions");
+      if (session.failedAction.pageState === JSON.stringify(observation)) {
+        return {
+          success: false,
+          retryBlocked: true,
+          message: "This action already failed on the unchanged page. It was not executed again.",
+          observation,
+          recovery: "Use the fresh observation or request a screenshot to choose a different action. After manual changes, call browser_observe before retrying.",
+        };
+      }
+    }
+    session.failedAction = undefined;
+    let result: any;
+    let actionFailed = false;
+    try {
+      result = await stagehand.act(instruction, { page });
+      actionFailed = result.success === false;
+    } catch (error) {
+      result = { success: false, message: error instanceof Error ? error.message : String(error), actions: [] };
+    }
     await publishPreview(chatId);
+    if (result.success === false) {
+      result.recovery = actionFailed
+        ? "Inspect the fresh observation and screenshot before choosing a different action. A failed click does not prove a popup or login wall exists. Do not repeat or rephrase the same failed click on an unchanged page."
+        : "The browser action raised an error. Inspect the fresh observation and screenshot before deciding whether retrying is appropriate.";
+      try {
+        result.observation = await readPage(page, "actions");
+        if (actionFailed) session.failedAction = { instruction, pageState: JSON.stringify(result.observation) };
+      } catch (error) {
+        result.observationError = error instanceof Error ? error.message : String(error);
+      }
+      try {
+        Object.assign(result, await captureScreenshot(chatId, page));
+      } catch (error) {
+        result.screenshotError = error instanceof Error ? error.message : String(error);
+      }
+    }
     return result;
   }
   if (name === "browser_extract") return { instruction: String(args.instruction), url: page.url(), title: await page.title(), ...(await readPage(page, "content")) };
-  const screenshots = path.join(workspacePath(chatId), ".harness", "screenshots");
-  await mkdir(screenshots, { recursive: true });
-  const filename = `${randomUUID()}.png`;
-  const image = await page.screenshot({ fullPage: true });
-  await writeFile(path.join(screenshots, filename), image);
+  const screenshot = await captureScreenshot(chatId, page);
   await publishPreview(chatId);
-  return {
-    url: page.url(),
-    title: await page.title(),
-    screenshot: `/workspace/.harness/screenshots/${filename}`,
-    note: "Screenshot saved in the workspace. Use browser_extract for page content rather than passing image data through context.",
-  };
+  return screenshot;
 }
 
 export async function controlBrowser(chatId: string, action: BrowserControlAction) {
@@ -143,6 +245,7 @@ export async function controlBrowser(chatId: string, action: BrowserControlActio
   if (action.type === "type") await page.type(action.text, { delay: 20 });
   if (action.type === "key") await page.keyPress(action.key);
   if (action.type === "back") await page.goBack({ waitUntil: "domcontentloaded" });
+  session.failedAction = undefined;
   await publishPreview(chatId);
   return { url: page.url(), title: await page.title() };
 }
@@ -151,6 +254,10 @@ export async function closeBrowser(chatId: string) {
   const browser = sessions.get(chatId);
   if (!browser) return;
   if (browser.previewTimer) clearInterval(browser.previewTimer);
-  await browser.stagehand.close();
-  sessions.delete(chatId);
+  try {
+    await browser.browserContext.close();
+  } finally {
+    await browser.stagehand.close();
+    if (sessions.get(chatId) === browser) sessions.delete(chatId);
+  }
 }

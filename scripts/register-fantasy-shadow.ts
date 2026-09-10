@@ -7,6 +7,7 @@ import type { Slate } from "./lib/fantasy-eval.js";
 
 const relevantCode = [
   "src/agent.ts",
+  "src/model.ts",
   "src/sandbox.ts",
   "scripts/register-fantasy-shadow.ts",
   "scripts/predict-fantasy-shadow.ts",
