@@ -1,27 +1,33 @@
 # Sandbox Harness
 
-A deliberately thin local agent harness: an OpenAI model can use a persistent Docker workspace and a Stagehand-controlled browser through a simple chat interface.
+A deliberately thin local agent harness: an OpenAI or Gemini model can use a persistent Docker workspace and a Stagehand-controlled browser through a simple chat interface.
 
 ## What it includes
 
 - A persistent workspace per chat at `.data/sessions/<id>/workspace`, including SQLite (`sqlite3`) so the agent can create task-specific databases and schemas.
 - One Docker sandbox per chat, mounted at `/workspace`.
 - A small tool set: `exec`, `browser_open`, `browser_observe`, `browser_act`, `browser_extract`, and `browser_screenshot`.
-- A direct OpenAI Responses API tool loop with streamed text and visible tool activity.
+- A direct OpenAI Responses API or Google Gemini API tool loop with streamed text and visible tool activity.
 - File upload, browsing, and download in the UI.
-- Context management: a rolling durable summary plus six recent messages carry cross-turn state; large tool results are saved under `/workspace/.harness/tool-results` and screenshots under `/workspace/.harness/screenshots` rather than being replayed to the model. Tool-heavy runs use Responses API server-side compaction.
+- Agent-turn requests retry temporary HTTP 500/502/503/504 failures up to three times, waiting 2, 4, and 8 seconds. Retries preserve tool results and stop if response output has already started; retry status appears in the activity log.
+- Empty Gemini completions and `MALFORMED_FUNCTION_CALL` responses without visible text share a two-retry limit with short delays. Malformed responses are discarded without executing their tools; retries preserve conversation state and include tool-schema guidance. Responses that already emitted visible text stop to avoid replaying a partial answer. Abnormal completions save metadata (no prompts, screenshots, or credentials) under `/workspace/.harness/model-diagnostics`; blocked or incomplete responses stop with their specific reason.
+- The agent is instructed to validate extracted row counts and required fields against the source before analysis and retry incomplete extraction.
+- Failed browser actions return a fresh observation and viewport screenshot. Immediate repeats of an unsuccessful action are blocked on an unchanged page; explicit observation, navigation, or manual control clears the guard. Errors thrown by the browser service remain retryable after inspection.
+- Screenshot requests and failed browser actions send actual images to the selected model. Images stay out of text tool logs; PNG artifacts remain available in the workspace. Gemini keeps only the newest batch of screenshots in the current turn's context.
+- The agent understands manual login in its shared Chromium window and checks the current page when you return control. Finish the agent turn before taking control, then tell it when you are done.
+- Context management: a rolling durable summary plus six recent messages carry cross-turn state; large tool results are saved under `/workspace/.harness/tool-results` and screenshots under `/workspace/.harness/screenshots`. Earlier turns' tool traces and images are not replayed. OpenAI runs additionally use Responses API server-side compaction; Gemini retains the current turn's tool conversation locally until the turn ends.
 
 ## Prerequisites
 
 - Node.js 22 or newer
 - Docker Desktop running
-- An OpenAI API key
+- An OpenAI or Google Gemini API key
 
 ## Run it
 
 ```bash
 cp .env.example .env
-# Add OPENAI_API_KEY to .env
+# Add OPENAI_API_KEY or GEMINI_API_KEY to .env
 npm install
 npm run sandbox:build
 npm run dev
@@ -31,11 +37,29 @@ Open `http://127.0.0.1:3000`.
 
 `npm run dev` watches the server and automatically refreshes open local harness tabs after a code change.
 
+### Using Gemini
+
+Set these values in `.env` (keep your key private):
+
+```dotenv
+MODEL_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+Restart the server after editing `.env`. Chat, durable memory, and browser actions all use the selected provider. Gemini does not require an OpenAI key.
+
+Set `MODEL_PROVIDER=openai` to switch back. If `MODEL_PROVIDER` is blank, the harness selects Gemini when only `GEMINI_API_KEY` is set; otherwise it defaults to OpenAI. When both keys are present, set the provider explicitly.
+
+The Gemini integration uses Google's [Gen AI JavaScript SDK](https://googleapis.github.io/js-genai/release_docs/) and Stagehand's [Google model support](https://docs.stagehand.dev/v3/configuration/models).
+
 ## Notes
 
-- The browser uses Stagehand in `LOCAL` mode with CloakBrowser's Chromium binary and stealth launch arguments. CloakBrowser downloads its binary on the first browser session; the host does not need a separate Chrome/Chromium installation.
+- The browser uses CloakBrowser's persistent Chromium profile with Stagehand attached in `LOCAL` mode for browser actions. CloakBrowser manages graceful browser shutdown to save login storage. CloakBrowser downloads its binary on the first browser session; the host does not need a separate Chrome/Chromium installation.
+- Each chat saves its Chromium profile at `.data/sessions/<id>/browser-profile`, outside the Docker workspace and file-download routes. Sign in once in the harness browser after enabling this; persistent cookies and site storage are reused when you reopen the same chat after a restart. Existing temporary browser logins are not migrated. New chats have separate profiles, and sites can still expire logins. Profiles are local and excluded from Git.
 - The agent has broad control over its own Docker workspace. This is a prototype harness, not a hardened multi-user environment.
 - `OPENAI_MODEL` defaults to `gpt-5.6-luna`; set it in `.env` to use another model your account supports.
+- `GEMINI_MODEL` defaults to `gemini-2.5-flash`; set it in `.env` to use another Gemini model your account supports.
 
 ## NBA lineup evaluation
 
@@ -107,5 +131,8 @@ npm run fantasy:shadow:grade
 
 The state machine is `REGISTERED -> PREDICTING -> SEALED -> SCORED`. Prediction
 cannot be rerun after leaving `REGISTERED`; failures consume their attempt.
+The selected model must match the registered protocol's `model`. For a Gemini
+shadow test, register a separate protocol with a new `id` and the Gemini model
+name before prediction; the existing OpenAI protocol remains fixed.
 Results are written under `.data/evals/shadow/nba-shadow-final-five-v1/` as
 sealed artifact bundles, `report.json`, `REPORT.md`, and `results.sqlite`.

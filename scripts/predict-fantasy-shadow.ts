@@ -4,6 +4,7 @@ import { cp, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { emptyRunStats, runAgent } from "../src/agent.js";
+import { getModelConfig } from "../src/model.js";
 import { execute, stopSandbox } from "../src/sandbox.js";
 import { createSession, workspacePath } from "../src/store.js";
 import { legalLineups, lineupIds, readCheckpoint, type Slate } from "./lib/fantasy-eval.js";
@@ -15,7 +16,8 @@ async function main() {
   const root = shadowRoot(testId);
   const state = await readState(root);
   if (state.state !== "REGISTERED") throw new Error(`Prediction requires REGISTERED state; found ${state.state}. No reruns are allowed.`);
-  if ((process.env.OPENAI_MODEL || "gpt-5.6-luna") !== state.protocol.model) throw new Error(`OPENAI_MODEL must remain ${state.protocol.model} for this registered test.`);
+  const { model } = getModelConfig(true);
+  if (model !== state.protocol.model) throw new Error(`The configured model must remain ${state.protocol.model} for this registered test.`);
   if (state.protocol.sandbox_network_enabled || state.protocol.allowed_tools.some((name) => name.startsWith("browser_"))) throw new Error("Historical shadow protocols must disable browser tools and sandbox networking.");
   for (const [file, expected] of Object.entries(state.code_hashes)) {
     if (await sha256File(path.resolve(file)) !== expected) throw new Error(`Registered code changed before prediction: ${file}`);
