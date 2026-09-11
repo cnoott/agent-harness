@@ -6,6 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
+    "test:subagents": "tsx --test tests/subagents.test.ts",
     "fantasy:grade": "tsx scripts/grade-fantasy-lineup.ts",
     "fantasy:fixtures": "tsx scripts/build-nba-replay-fixtures.ts",
     "fantasy:replay": "tsx scripts/run-fantasy-replays.ts",

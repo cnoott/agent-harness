@@ -36,7 +36,7 @@ export type ChatSession = {
 };
 
 export type ToolEvent = {
-  type: "tool_start" | "tool_end" | "text_delta" | "status" | "browser_frame" | "error" | "done";
+  type: "tool_start" | "tool_end" | "text_delta" | "status" | "browser_frame" | "error" | "done" | "agent_update";
   name?: string;
   data?: unknown;
 };

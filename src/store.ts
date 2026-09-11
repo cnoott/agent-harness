@@ -7,6 +7,7 @@ import type { ChatSession } from "./types.js";
 const dataRoot = path.resolve(process.cwd(), ".data", "sessions");
 
 export function workspacePath(chatId: string) {
+  if (chatId.startsWith("worker-")) return path.resolve(dataRoot, "..", "agents", chatId, "workspace");
   return path.join(dataRoot, chatId, "workspace");
 }
 

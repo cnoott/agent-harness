@@ -115,7 +115,9 @@ export function saveCheckpoint(chatId: string, previous: Checkpoint, cursor: His
       if (revision !== previous.revision) throw new Error("The task checkpoint changed during compaction; retry with the latest history.");
       const source = db.prepare("SELECT * FROM events WHERE id = ?").get(cursor.eventId) as HistoryEvent | undefined;
       const oldCursor = previous.memory.cursor!;
-      if (!source || cursor.offset < 0 || cursor.offset > eventContext(source).length || cursor.eventId < oldCursor.eventId || (cursor.eventId === oldCursor.eventId && cursor.offset <= oldCursor.offset)) throw new Error("Invalid compaction coverage");
+      if (!source || cursor.offset < 0 || cursor.offset > eventContext(source).length || cursor.eventId < oldCursor.eventId || (cursor.eventId === oldCursor.eventId && cursor.offset <= oldCursor.offset)) {
+        throw new Error("Invalid compaction coverage");
+      }
       const memory: ChatMemory = { summary: JSON.stringify(state), state, cursor, updatedAt: new Date().toISOString() };
       const result = db.prepare("INSERT INTO checkpoints (memory) VALUES (?)").run(JSON.stringify(memory));
       db.exec("COMMIT");
