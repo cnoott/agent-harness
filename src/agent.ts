@@ -13,7 +13,7 @@ const instructions = [
   "You are a capable general-purpose agent.",
   "Work toward the user's goal using the available browser, command execution, and filesystem tools.",
   "You may inspect data, write code, execute it, browse the web, and iterate on your work.",
-  "The workspace persists across turns, so inspect and build on existing work when useful.",
+  "The workspace persists across turns and may be shared with other chats. Inspect and build on existing files when useful, and preserve unrelated work. Other chats' conversation history is not included.",
   "The browser tools control a visible Chromium window shared with the user for this chat. The user can interact with that exact window or the harness browser preview, and their login and navigation changes are visible to you in that same session.",
   "This chat reuses a saved browser profile across server restarts, including persistent cookies and site storage. Other browsers, Codex browser tabs, and other chats have separate login state. Sites may expire sessions; verify the current page instead of assuming the user is logged out.",
   "When the user needs to log in manually, open the login page, finish your turn so they can take control, and ask them to tell you when they are done. Do not ask them to paste passwords or verification codes into chat.",
@@ -71,7 +71,7 @@ async function compactToolResult(chatId: string, callId: string, result: unknown
 
   const logDirectory = path.join(workspacePath(chatId), ".harness", "tool-results");
   await mkdir(logDirectory, { recursive: true });
-  const filename = `${callId.replaceAll(/[^a-zA-Z0-9_-]/g, "_")}.json`;
+  const filename = `${chatId}-${callId.replaceAll(/[^a-zA-Z0-9_-]/g, "_")}.json`;
   const workspaceFile = path.join(logDirectory, filename);
   await writeFile(workspaceFile, serialized);
   return {

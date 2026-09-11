@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, realpath, symlink, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -14,10 +14,28 @@ function sessionPath(chatId: string) {
   return path.join(dataRoot, chatId, "session.json");
 }
 
-export async function createSession(): Promise<ChatSession> {
+export async function createSession(workspaceId?: string, workspaceName?: string): Promise<ChatSession> {
   const id = randomUUID();
-  const session: ChatSession = { id, createdAt: new Date().toISOString(), messages: [] };
-  await mkdir(workspacePath(id), { recursive: true });
+  const session: ChatSession = { id, workspaceId: id, createdAt: new Date().toISOString(), messages: [] };
+  if (workspaceName) session.workspaceName = workspaceName;
+  if (workspaceId) {
+    let target: string;
+    if (workspaceId === "shared") {
+      target = path.resolve(dataRoot, "..", "workspaces", "shared");
+      await mkdir(target, { recursive: true });
+      session.workspaceId = "shared";
+    } else {
+      const source = await getSession(workspaceId);
+      if (!source) throw new Error("Workspace not found");
+      target = workspacePath(source.id);
+      session.workspaceId = source.workspaceId ?? source.id;
+      session.workspaceName = source.workspaceName;
+    }
+    await mkdir(path.dirname(workspacePath(id)), { recursive: true });
+    await symlink(path.relative(path.dirname(workspacePath(id)), await realpath(target)), workspacePath(id), "dir");
+  } else {
+    await mkdir(workspacePath(id), { recursive: true });
+  }
   await saveSession(session);
   return session;
 }

@@ -3,6 +3,7 @@ export type ChatMessage = {
   role: "user" | "assistant";
   text: string;
   createdAt: string;
+  activity?: ToolEvent[];
 };
 
 export type ChatMemory = {
@@ -13,6 +14,8 @@ export type ChatMemory = {
 
 export type ChatSession = {
   id: string;
+  workspaceId?: string;
+  workspaceName?: string;
   createdAt: string;
   lastResponseId?: string;
   memory?: ChatMemory;

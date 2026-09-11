@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { mkdir, realpath } from "node:fs/promises";
 import { workspacePath } from "./store.js";
 
 type CommandResult = { stdout: string; stderr: string; exitCode: number };
@@ -31,7 +31,7 @@ export async function ensureSandbox(chatId: string, options: SandboxOptions = {}
   const created = await run("docker", [
     "run", "-d", "--name", name,
     ...networkArgs,
-    "-v", `${workspacePath(chatId)}:/workspace`,
+    "-v", `${await realpath(workspacePath(chatId))}:/workspace`,
     "-w", "/workspace",
     "sandbox-harness:local",
   ]);

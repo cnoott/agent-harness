@@ -4,11 +4,13 @@ A deliberately thin local agent harness: an OpenAI or Gemini model can use a per
 
 ## What it includes
 
-- A persistent workspace per chat at `.data/sessions/<id>/workspace`, including SQLite (`sqlite3`) so the agent can create task-specific databases and schemas.
-- One Docker sandbox per chat, mounted at `/workspace`.
+- Shared persistent files, including SQLite (`sqlite3`) so the agent can create task-specific databases and schemas. New chats default to the current workspace; the new-chat picker can select an existing workspace or create a named, empty workspace that later chats can reuse.
+- One Docker sandbox per chat, with the selected workspace mounted at `/workspace`. Chat history and browser profiles remain per chat.
 - A small tool set: `exec`, `browser_open`, `browser_observe`, `browser_act`, `browser_extract`, and `browser_screenshot`.
 - A direct OpenAI Responses API or Google Gemini API tool loop with streamed text and visible tool activity.
-- File upload, browsing, and download in the UI.
+- File upload, browsing, explicit downloads, and confirmed deletion in the workspace UI.
+- Markdown responses, including tables and code blocks, plus collapsed tool activity inside each assistant response. New tool activity is saved with chat history; older chats still show their saved text.
+- Enter sends a message; Shift+Enter inserts a new line. The microphone records up to five minutes, then uses OpenAI Whisper (`whisper-1`) to add an editable transcript to your draft. Stop recording to transcribe, or Cancel to discard it.
 - Agent-turn requests retry temporary HTTP 500/502/503/504 failures up to three times, waiting 2, 4, and 8 seconds. Retries preserve tool results and stop if response output has already started; retry status appears in the activity log.
 - Empty Gemini completions and `MALFORMED_FUNCTION_CALL` responses without visible text share a two-retry limit with short delays. Malformed responses are discarded without executing their tools; retries preserve conversation state and include tool-schema guidance. Responses that already emitted visible text stop to avoid replaying a partial answer. Abnormal completions save metadata (no prompts, screenshots, or credentials) under `/workspace/.harness/model-diagnostics`; blocked or incomplete responses stop with their specific reason.
 - The agent is instructed to validate extracted row counts and required fields against the source before analysis and retry incomplete extraction.
@@ -37,6 +39,8 @@ Open `http://127.0.0.1:3000`.
 
 `npm run dev` watches the server and automatically refreshes open local harness tabs after a code change.
 
+Voice input requires `OPENAI_API_KEY` in `.env`, even when Gemini handles the chat. The key stays on the server; recordings are sent to OpenAI for transcription and are not saved in the workspace. Your browser must allow microphone access and use HTTPS or localhost (plain HTTP on a LAN IP cannot access the microphone). For local microphone use, run `HOST=127.0.0.1 npm run dev` and open `http://127.0.0.1:3000`. Transcripts are never submitted automatically.
+
 ### Using Gemini
 
 Set these values in `.env` (keep your key private):
@@ -55,6 +59,7 @@ The Gemini integration uses Google's [Gen AI JavaScript SDK](https://googleapis.
 
 ## Notes
 
+- The default shared workspace lives at `.data/workspaces/shared`. Each new UI chat links `.data/sessions/<id>/workspace` to its selected folder, so uploads, downloads, and agent commands all use the same files. Earlier chats keep their existing folders and can share them with new chats through the picker; files are not moved or merged. Replay and shadow-evaluation scripts still create isolated workspaces.
 - The browser uses CloakBrowser's persistent Chromium profile with Stagehand attached in `LOCAL` mode for browser actions. CloakBrowser manages graceful browser shutdown to save login storage. CloakBrowser downloads its binary on the first browser session; the host does not need a separate Chrome/Chromium installation.
 - Each chat saves its Chromium profile at `.data/sessions/<id>/browser-profile`, outside the Docker workspace and file-download routes. Sign in once in the harness browser after enabling this; persistent cookies and site storage are reused when you reopen the same chat after a restart. Existing temporary browser logins are not migrated. New chats have separate profiles, and sites can still expire logins. Profiles are local and excluded from Git.
 - The agent has broad control over its own Docker workspace. This is a prototype harness, not a hardened multi-user environment.
