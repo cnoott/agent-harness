@@ -9,6 +9,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createSession, getSession, listSessions, resolveWorkspaceFile, saveSession, workspacePath } from "./store.js";
 import { cancelRun, runAgent, type RunControl, type Emit } from "./agent.js";
+import { importHistory } from "./history.js";
 import { controlBrowser, subscribeBrowserPreview } from "./browser.js";
 import { Subagents } from "./subagents.js";
 import { readJson, writeJson } from "./run-state.js";
@@ -26,6 +27,7 @@ for (const session of await listSessions()) {
     interrupted.activity ??= [];
     interrupted.activity.push({ type: "error", data: "This run was interrupted by a server restart. Worker results and checkpoints were preserved. Send a message to continue." });
     session.messages.push(interrupted);
+    importHistory(session);
     await saveSession(session);
   }
   await unlink(activeRunPath(session.id));
@@ -282,6 +284,7 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
   const userMessage: ChatMessage = { id: randomUUID(), role: "user", text: text.trim(), createdAt: new Date().toISOString() };
   session.messages.push(userMessage);
   try {
+    importHistory(session);
     await saveSession(session);
     await writeJson(activeRunPath(chatId), assistantMessage);
   } catch (error) {
@@ -328,6 +331,7 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
       await subagents.cancelParent(chatId);
       assistantMessage.text = assistantText;
       session.messages.push(assistantMessage);
+      importHistory(session);
       await saveSession(session);
       saved = true;
       send({ type: "done", data: assistantMessage });

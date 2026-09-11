@@ -50,11 +50,12 @@ export function recordHistory(chatId: string, kind: string, data: unknown, conte
 export function importHistory(session: ChatSession) {
   withHistory(session.id, (db) => {
     const insert = db.prepare("INSERT INTO events (source_id, kind, created_at, data, context) VALUES (?, ?, ?, ?, ?) ON CONFLICT(source_id) DO NOTHING");
+    const hasRuns = Boolean(db.prepare("SELECT 1 FROM events WHERE kind = 'run_start' LIMIT 1").get());
     db.exec("BEGIN IMMEDIATE");
     try {
       for (const message of session.messages) {
-        const result = insert.run(`message:${message.id}`, "message", message.createdAt, JSON.stringify(message), `${message.role.toUpperCase()}:\n${message.text}`);
-        if (!result.changes) continue;
+        const result = insert.run(`message:${message.id}`, "message", message.createdAt, JSON.stringify(message), message.role === "assistant" && hasRuns ? "" : `${message.role.toUpperCase()}:\n${message.text}`);
+        if (!result.changes || hasRuns) continue;
         for (const [index, event] of (message.activity ?? []).entries()) {
           if (!["tool_start", "tool_end", "error"].includes(event.type)) continue;
           const data = JSON.stringify(event.data ?? null);
@@ -152,7 +153,18 @@ export function readHistory(chatId: string, args: Record<string, unknown>) {
 
 export function unfinishedRuns(chatId: string) {
   return withHistory(chatId, (db) => {
-    const runs = db.prepare("SELECT run_id, id FROM events AS start WHERE kind = 'run_start' AND NOT EXISTS (SELECT 1 FROM events AS finish WHERE finish.run_id = start.run_id AND finish.kind = 'run_end') ORDER BY id DESC LIMIT 5").all();
+    const runs = db.prepare(`
+      SELECT run_id, id FROM events AS start WHERE kind = 'run_start' AND (
+        NOT EXISTS (SELECT 1 FROM events AS finish WHERE finish.run_id = start.run_id AND finish.kind = 'run_end')
+        OR EXISTS (
+          SELECT 1 FROM events AS call WHERE call.run_id = start.run_id AND call.kind = 'tool_start'
+          AND NOT EXISTS (
+            SELECT 1 FROM events AS result WHERE result.run_id = call.run_id AND result.kind = 'tool_end'
+            AND json_extract(result.data, '$.callId') = json_extract(call.data, '$.callId')
+          )
+        )
+      ) ORDER BY id DESC LIMIT 5
+    `).all();
     return runs.map((run) => {
       const calls = db.prepare("SELECT id, data FROM events AS start WHERE run_id = ? AND kind = 'tool_start' AND NOT EXISTS (SELECT 1 FROM events AS finish WHERE finish.run_id = start.run_id AND finish.kind = 'tool_end' AND json_extract(finish.data, '$.callId') = json_extract(start.data, '$.callId'))").all(String(run.run_id));
       return { runId: run.run_id, startEventId: run.id, uncertainActions: calls.map((call) => ({ eventId: call.id, name: JSON.parse(String(call.data)).name })) };
