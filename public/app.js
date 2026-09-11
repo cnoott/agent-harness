@@ -28,6 +28,7 @@ let browserEvents;
 let browserControlEnabled = false;
 let scrollTimer;
 let filesRequest = 0;
+let runEvents;
 
 function enableLiveReload() {
   if (!location.hostname.match(/^(127\\.0\\.0\\.1|localhost)$/)) return;
@@ -57,9 +58,10 @@ function renderMarkdown(content, text) {
   }
 }
 
-function renderMessage(message) {
+function renderMessage(message, active = false) {
   const item = $("#message-template").content.firstElementChild.cloneNode(true);
   item.classList.add(message.role);
+  if (message.id) item.dataset.messageId = message.id;
   item.querySelector(".message-meta").textContent = message.role === "user" ? "You" : "Agent";
   item.dataset.text = message.text;
   const content = item.querySelector(".message-content");
@@ -67,7 +69,7 @@ function renderMessage(message) {
   else content.textContent = message.text;
   messages.append(item);
   for (const event of message.activity || []) renderActivity(item, event);
-  finishActivity(item);
+  if (!active) finishActivity(item);
   scrollMessages();
   return item;
 }
@@ -78,6 +80,7 @@ function appendActivity(label, data, { tone = "error" } = {}) {
 }
 
 function renderActivity(item, activity) {
+  if (activity.type === "agent_update") return renderWorker(item, activity.data);
   const group = item.querySelector(".tool-activity");
   const events = item.querySelector(".activity-events");
   group.classList.remove("hidden");
@@ -107,6 +110,98 @@ function renderActivity(item, activity) {
   group.querySelector(".tool-activity-label").textContent = events.querySelector('[data-running="true"]') ? "Using tools…" : "Tool activity";
   scrollMessages();
 }
+
+function renderWorker(item, worker) {
+  let group = item.querySelector(".workers");
+  if (!group) {
+    group = document.createElement("div");
+    group.className = "workers";
+    group.setAttribute("aria-label", "Sub-agents");
+    item.querySelector(".message-content").before(group);
+  }
+  let card = [...group.children].find((entry) => entry.dataset.workerId === worker.id);
+  if (!card) {
+    card = document.createElement("details");
+    card.className = "worker-card";
+    card.dataset.workerId = worker.id;
+    group.append(card);
+  }
+  const open = card.open;
+  card.replaceChildren();
+  card.open = open;
+  card.dataset.workerStatus = worker.status;
+  const heading = document.createElement("summary");
+  const title = document.createElement("span");
+  title.className = "worker-title";
+  title.textContent = worker.task;
+  const badge = document.createElement("span");
+  badge.className = "worker-status";
+  badge.textContent = worker.status[0].toUpperCase() + worker.status.slice(1);
+  heading.append(title, badge);
+  card.append(heading);
+  const body = document.createElement("div");
+  body.className = "worker-body";
+  const meta = document.createElement("p");
+  meta.className = "worker-meta";
+  meta.dataset.model = `${worker.model.provider === "openai" ? "OpenAI" : "Gemini"} · ${worker.model.model}`;
+  meta.dataset.startedAt = worker.startedAt || "";
+  meta.dataset.endedAt = worker.endedAt || "";
+  meta.dataset.tokens = worker.stats.totalTokens.toLocaleString();
+  updateWorkerTime(meta);
+  body.append(meta);
+  const description = document.createElement("p");
+  description.textContent = worker.error || worker.result?.summary || worker.activity;
+  body.append(description);
+  if (worker.result?.output) {
+    const output = document.createElement("div");
+    output.className = "worker-output";
+    renderMarkdown(output, worker.result.output);
+    body.append(output);
+  }
+  for (const artifact of worker.result?.artifacts || []) {
+    const link = document.createElement("a");
+    link.className = "worker-artifact";
+    link.textContent = artifact.description || artifact.path;
+    link.href = `/api/chats/${worker.parentId}/files/${artifact.path.split("/").map(encodeURIComponent).join("/")}?download=1`;
+    body.append(link);
+  }
+  if (worker.result?.limitations.length) {
+    const limitations = document.createElement("p");
+    limitations.className = "muted";
+    limitations.textContent = `Limitations: ${worker.result.limitations.join("; ")}`;
+    body.append(limitations);
+  }
+  if (["queued", "running"].includes(worker.status)) {
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "secondary";
+    cancel.textContent = "Stop worker";
+    cancel.addEventListener("click", async () => {
+      cancel.disabled = true;
+      try {
+        const response = await fetch(`/api/chats/${worker.parentId}/agents/${worker.id}/cancel`, { method: "POST" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not stop worker.");
+        renderWorker(item, result);
+      } catch (error) {
+        cancel.disabled = false;
+        description.textContent = error.message;
+      }
+    });
+    body.append(cancel);
+  }
+  card.append(body);
+  scrollMessages();
+}
+
+function updateWorkerTime(meta) {
+  const elapsed = meta.dataset.startedAt ? Math.max(0, Math.round(((meta.dataset.endedAt ? new Date(meta.dataset.endedAt).getTime() : Date.now()) - new Date(meta.dataset.startedAt).getTime()) / 1000)) : 0;
+  meta.textContent = `${meta.dataset.model} · ${elapsed}s · ${meta.dataset.tokens} tokens`;
+}
+
+setInterval(() => {
+  for (const meta of messages.querySelectorAll('.worker-meta[data-ended-at=""]')) updateWorkerTime(meta);
+}, 1000);
 
 function finishActivity(item) {
   for (const event of item.querySelectorAll('[data-running="true"]')) {
@@ -306,6 +401,7 @@ async function toggleHistory() {
 }
 
 async function loadChat() {
+  runEvents?.close();
   if (!state.chatId) return createChat();
   const response = await fetch(`/api/chats/${state.chatId}`);
   if (!response.ok) return createChat();
@@ -315,10 +411,67 @@ async function loadChat() {
   $("#workspace-name").textContent = chat.workspaceName || (state.workspaceId === "shared" ? "Shared workspace" : `Workspace ${state.workspaceId.slice(0, 8)}`);
   messages.replaceChildren();
   state.currentAssistant = null;
-  chat.messages.forEach(renderMessage);
+  chat.messages.forEach((message) => renderMessage(message));
+  if (chat.activeRun) {
+    state.currentAssistant = renderMessage(chat.activeRun, true);
+    state.currentAssistant.classList.add("is-working");
+    setRunning(true);
+    reconnectRun();
+  } else setRunning(false);
+  const workerResponse = await fetch(`/api/chats/${state.chatId}/agents`);
+  if (workerResponse.ok) {
+    for (const worker of await workerResponse.json()) {
+      const item = [...messages.children].find((entry) => entry.dataset.messageId === worker.parentRunId);
+      if (item) renderWorker(item, worker);
+    }
+  }
   scrollMessages(true);
   connectBrowserEvents();
   await refreshFiles();
+}
+
+function applyRunEvent(event) {
+  if (!state.currentAssistant) return;
+  if (event.type === "text_delta") {
+    state.currentAssistant.dataset.text += event.data;
+    renderMarkdown(state.currentAssistant.querySelector(".message-content"), state.currentAssistant.dataset.text);
+    scrollMessages();
+  } else if (["tool_start", "tool_end", "status", "error", "agent_update"].includes(event.type)) renderActivity(state.currentAssistant, event);
+  else if (event.type === "browser_frame") renderBrowserPreview(event.data);
+  else if (event.type === "done") {
+    state.currentAssistant.dataset.messageId = event.data.id;
+    state.currentAssistant.dataset.text = event.data.text;
+    renderMarkdown(state.currentAssistant.querySelector(".message-content"), event.data.text);
+    finishActivity(state.currentAssistant);
+  }
+}
+
+function reconnectRun() {
+  runEvents?.close();
+  runEvents = new EventSource(`/api/chats/${state.chatId}/events`);
+  runEvents.onmessage = async ({ data }) => {
+    const event = JSON.parse(data);
+    if (event.type === "idle") {
+      runEvents.close();
+      try { await loadChat(); }
+      catch { reconnectRun(); }
+      return;
+    }
+    if (event.type === "snapshot") {
+      state.currentAssistant?.remove();
+      state.currentAssistant = renderMessage(event.data, true);
+      state.currentAssistant.classList.add("is-working");
+      setRunning(true);
+      return;
+    }
+    applyRunEvent(event);
+    if (event.type === "done") {
+      runEvents.close();
+      setRunning(false);
+      await refreshFiles();
+    }
+  };
+  runEvents.onerror = () => { status.textContent = "Reconnecting…"; };
 }
 
 async function refreshFiles() {
@@ -595,28 +748,22 @@ async function run(text) {
       for (const chunk of chunks) {
         if (!chunk.startsWith("data: ")) continue;
         const event = JSON.parse(chunk.slice(6));
-        if (event.type === "text_delta") {
-          const content = state.currentAssistant.querySelector(".message-content");
-          state.currentAssistant.dataset.text += event.data;
-          renderMarkdown(content, state.currentAssistant.dataset.text);
-          scrollMessages();
-        } else if (["tool_start", "tool_end", "status", "error"].includes(event.type)) renderActivity(state.currentAssistant, event);
-        else if (event.type === "browser_frame") renderBrowserPreview(event.data);
-        else if (event.type === "done") {
-          completed = true;
-          state.currentAssistant.dataset.text = event.data.text;
-          renderMarkdown(state.currentAssistant.querySelector(".message-content"), event.data.text);
-          finishActivity(state.currentAssistant);
-        }
+        applyRunEvent(event);
+        if (event.type === "done") completed = true;
       }
     }
-    if (!completed) throw new Error("The connection ended before the response finished. Reload the chat to check its saved state.");
   } catch (error) {
     appendActivity("Error", error.message || String(error));
   } finally {
-    finishActivity(state.currentAssistant);
-    setRunning(false);
-    await refreshFiles();
+    if (!completed) {
+      status.textContent = "Reconnecting…";
+      reconnectRun();
+    }
+    else {
+      finishActivity(state.currentAssistant);
+      setRunning(false);
+      await refreshFiles();
+    }
   }
 }
 
