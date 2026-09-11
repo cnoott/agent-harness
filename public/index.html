@@ -18,6 +18,24 @@
         <button id="new-chat" class="secondary">New chat</button>
       </div>
     </header>
+    <dialog id="new-chat-dialog" aria-labelledby="new-chat-title" aria-describedby="new-chat-description">
+      <form id="new-chat-form">
+        <h2 id="new-chat-title">New chat</h2>
+        <p id="new-chat-description" class="workspace-copy">Start fresh with access to the files in your selected workspace.</p>
+        <label for="new-chat-workspace">Workspace</label>
+        <select id="new-chat-workspace" name="workspaceId"></select>
+        <div id="new-workspace-fields" class="hidden">
+          <label for="new-workspace-name">Workspace name</label>
+          <input id="new-workspace-name" name="workspaceName" maxlength="80" placeholder="e.g. Research project" autocomplete="off" />
+        </div>
+        <p class="workspace-copy">Reuse a workspace to share its files, or create a new one to start with an empty folder.</p>
+        <p id="new-chat-error" class="composer-error" role="alert"></p>
+        <div class="new-chat-actions">
+          <button id="cancel-new-chat" type="button" class="secondary">Cancel</button>
+          <button id="start-chat" type="submit">Start chat</button>
+        </div>
+      </form>
+    </dialog>
     <aside id="history-drawer" class="history-drawer" aria-label="Previous chats" aria-hidden="true">
       <div class="history-heading">
         <div>
@@ -31,22 +49,27 @@
     <div id="history-backdrop" class="history-backdrop hidden"></div>
     <main>
       <section class="chat-panel">
-        <div id="messages" class="messages"></div>
-        <div id="activity" class="activity hidden">
-          <div class="activity-header">Activity</div>
-          <div id="activity-events"></div>
-        </div>
+        <div id="messages" class="messages" role="region" aria-label="Conversation" tabindex="0"></div>
         <form id="composer">
-          <label class="upload" title="Upload files to the workspace">
-            <input id="file-input" type="file" multiple />
-            <span>Attach</span>
-          </label>
-          <textarea id="prompt" rows="3" placeholder="Give the agent a goal…"></textarea>
-          <div class="composer-actions">
-            <span id="status" class="muted">Ready</span>
-            <button id="stop" type="button" class="secondary hidden">Stop</button>
-            <button id="send" type="submit">Run</button>
+          <div class="composer-box">
+            <textarea id="prompt" rows="1" aria-label="Message" aria-describedby="composer-hint" placeholder="Message the agent…"></textarea>
+            <div class="composer-actions">
+              <label class="upload" title="Upload files to the workspace">
+                <input id="file-input" type="file" multiple aria-label="Attach files" />
+                <span>＋ Attach</span>
+              </label>
+              <span id="status" class="muted" role="status">Ready</span>
+              <button id="voice-cancel" type="button" class="secondary hidden">Cancel</button>
+              <button id="voice" type="button" class="secondary voice-button" aria-label="Start voice input" title="Start voice input" aria-pressed="false" disabled>
+                <svg class="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
+                <span class="recording-stop hidden" aria-hidden="true">■</span>
+              </button>
+              <button id="stop" type="button" class="secondary hidden">Stop</button>
+              <button id="send" type="submit" aria-label="Send message" title="Send message" disabled>↑</button>
+            </div>
           </div>
+          <p id="composer-error" class="composer-error hidden" role="alert"></p>
+          <p id="composer-hint" class="composer-hint">Enter to send · Shift + Enter for a new line</p>
         </form>
       </section>
       <aside class="workspace-panel">
@@ -75,18 +98,24 @@
         <div class="workspace-heading">
           <div>
             <p class="eyebrow">PERSISTENT</p>
-            <h2>Workspace</h2>
+            <h2 id="workspace-name">Workspace</h2>
           </div>
           <button id="refresh-files" class="icon-button" title="Refresh files">↻</button>
         </div>
-        <p class="workspace-copy">Files are mounted at <code>/workspace</code> inside the agent’s Docker sandbox.</p>
+        <p class="workspace-copy">Chats in this workspace share these files at <code>/workspace</code>. New chats reuse this workspace unless you choose another.</p>
+        <p id="files-error" class="file-error" role="alert"></p>
         <div id="files" class="files"></div>
       </aside>
     </main>
     <template id="message-template">
       <article class="message">
         <div class="message-meta"></div>
+        <details class="tool-activity hidden">
+          <summary><span class="tool-activity-label">Tool activity</span><span class="tool-activity-count"></span></summary>
+          <div class="activity-events"></div>
+        </details>
         <div class="message-content"></div>
+        <p class="message-notice hidden" role="status"></p>
       </article>
     </template>
     <script type="module" src="/app.js"></script>
