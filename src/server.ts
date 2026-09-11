@@ -9,6 +9,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createSession, getSession, listSessions, resolveWorkspaceFile, saveSession, workspacePath } from "./store.js";
 import { runAgent, type RunControl } from "./agent.js";
+import { importHistory } from "./history.js";
 import { controlBrowser, subscribeBrowserPreview } from "./browser.js";
 import type { ChatMessage, ToolEvent } from "./types.js";
 
@@ -211,7 +212,10 @@ app.post("/api/chats/:chatId/upload", async (request, reply) => {
 
 app.post("/api/chats/:chatId/stop", async (request) => {
   const control = activeRuns.get((request.params as any).chatId);
-  if (control) control.cancelled = true;
+  if (control) {
+    control.cancelled = true;
+    control.abortController?.abort();
+  }
   return { stopped: Boolean(control) };
 });
 
@@ -223,9 +227,17 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
   if (!text?.trim()) return reply.code(400).send({ error: "Message text is required" });
   if (activeRuns.has(chatId)) return reply.code(409).send({ error: "A run is already active" });
 
+  const control: RunControl = { cancelled: false, abortController: new AbortController() };
+  activeRuns.set(chatId, control);
   const userMessage: ChatMessage = { id: randomUUID(), role: "user", text: text.trim(), createdAt: new Date().toISOString() };
   session.messages.push(userMessage);
-  await saveSession(session);
+  try {
+    importHistory(session);
+    await saveSession(session);
+  } catch (error) {
+    activeRuns.delete(chatId);
+    throw error;
+  }
 
   reply.hijack();
   reply.raw.writeHead(200, {
@@ -240,8 +252,6 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
     if (["tool_start", "tool_end", "status", "error"].includes(event.type)) activity.push(event);
     reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
   };
-  const control: RunControl = { cancelled: false };
-  activeRuns.set(chatId, control);
 
   try {
     assistantText = await runAgent(session, userMessage.text, send, control);
@@ -251,6 +261,7 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
     try {
       const assistantMessage: ChatMessage = { id: randomUUID(), role: "assistant", text: assistantText, createdAt: new Date().toISOString(), activity };
       session.messages.push(assistantMessage);
+      importHistory(session);
       await saveSession(session);
       send({ type: "done", data: assistantMessage });
     } finally {

@@ -8,8 +8,21 @@ export type ChatMessage = {
 
 export type ChatMemory = {
   summary: string;
-  summarizedThroughMessageId: string;
+  summarizedThroughMessageId?: string;
   updatedAt: string;
+  cursor?: HistoryCursor;
+  state?: TaskState;
+};
+
+export type HistoryCursor = { eventId: number; offset: number };
+
+export type TaskState = {
+  goal: string;
+  constraints: string[];
+  decisions: string[];
+  findings: string[];
+  completed: string[];
+  pending: string[];
 };
 
 export type ChatSession = {

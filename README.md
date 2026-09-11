@@ -17,11 +17,15 @@ A deliberately thin local agent harness: an OpenAI or Gemini model can use a per
 - Failed browser actions return a fresh observation and viewport screenshot. Immediate repeats of an unsuccessful action are blocked on an unchanged page; explicit observation, navigation, or manual control clears the guard. Errors thrown by the browser service remain retryable after inspection.
 - Screenshot requests and failed browser actions send actual images to the selected model. Images stay out of text tool logs; PNG artifacts remain available in the workspace. Gemini keeps only the newest batch of screenshots in the current turn's context.
 - The agent understands manual login in its shared Chromium window and checks the current page when you return control. Finish the agent turn before taking control, then tell it when you are done.
-- Context management: a rolling durable summary plus six recent messages carry cross-turn state; large tool results are saved under `/workspace/.harness/tool-results` and screenshots under `/workspace/.harness/screenshots`. Earlier turns' tool traces and images are not replayed. OpenAI runs additionally use Responses API server-side compaction; Gemini retains the current turn's tool conversation locally until the turn ends.
+- Each chat keeps a durable SQLite history at `.data/sessions/<id>/history.sqlite`, outside the sandbox and shared workspace. Messages, model completions, tool attempts/results, and run outcomes survive restarts. Existing messages and saved activity are imported automatically; an old summary is rebuilt from its original history when needed.
+- The `history_read` tool searches this chat's original records and reads long results in pages. Large tool outputs also remain available under `/workspace/.harness/tool-results`, and screenshots under `/workspace/.harness/screenshots`.
+- Context management uses token budgets instead of a fixed message count. Complete user messages are processed in consecutive fragments when necessary; current requests using at most a quarter of the input budget also remain verbatim after compaction. Structured task checkpoints preserve goals, constraints, decisions, findings, completed actions, and pending work. Each candidate is checked in a second model pass before its state and exact source cursor are committed together; older checkpoint versions remain stored. Invalid, incomplete, oversized, or non-shrinking checkpoints are rejected. If full history cannot fit and compaction fails, the run stops with its history retained.
+- `HARNESS_CONTEXT_TOKENS` defaults to `32000` (allowed: `16000`–`200000`), with `8192` tokens of headroom. Cross-turn compaction uses UTF-8 size estimates; Gemini additionally counts conversation tokens before each model step, estimates instruction/tool overhead, and rebuilds oversized tool conversations from durable records. OpenAI uses Responses API server-side compaction within a turn. Checkpoint model calls are included in run token statistics.
+- On continuation after an interrupted run, the agent receives references to tool attempts with uncertain outcomes and is instructed to inspect state before retrying. This does not automatically replay actions or guarantee exactly-once execution of shell commands and browser actions.
 
 ## Prerequisites
 
-- Node.js 22 or newer
+- Node.js 22.13 or newer (for built-in SQLite)
 - Docker Desktop running
 - An OpenAI or Google Gemini API key
 
