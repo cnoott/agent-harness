@@ -8,12 +8,28 @@ import { lstat, mkdir, readdir, realpath, stat, unlink } from "node:fs/promises"
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createSession, getSession, listSessions, resolveWorkspaceFile, saveSession, workspacePath } from "./store.js";
-import { runAgent, type RunControl } from "./agent.js";
+import { cancelRun, runAgent, type RunControl, type Emit } from "./agent.js";
 import { controlBrowser, subscribeBrowserPreview } from "./browser.js";
+import { Subagents } from "./subagents.js";
+import { readJson, writeJson } from "./run-state.js";
 import type { ChatMessage, ToolEvent } from "./types.js";
 
 const app = Fastify({ logger: true });
-const activeRuns = new Map<string, RunControl>();
+const activeRuns = new Map<string, { control: RunControl; message: ChatMessage; listeners: Set<Emit> }>();
+const subagents = new Subagents();
+await subagents.initialize();
+const activeRunPath = (chatId: string) => path.join(workspacePath(chatId), "..", "active-run.json");
+for (const session of await listSessions()) {
+  const interrupted = await readJson<ChatMessage>(activeRunPath(session.id));
+  if (!interrupted) continue;
+  if (!session.messages.some((message) => message.id === interrupted.id)) {
+    interrupted.activity ??= [];
+    interrupted.activity.push({ type: "error", data: "This run was interrupted by a server restart. Worker results and checkpoints were preserved. Send a message to continue." });
+    session.messages.push(interrupted);
+    await saveSession(session);
+  }
+  await unlink(activeRunPath(session.id));
+}
 const publicRoot = path.resolve(process.cwd(), "public");
 
 await app.register(fastifyStatic, { root: publicRoot, prefix: "/" });
@@ -123,7 +139,40 @@ app.post("/api/chats", async (request, reply) => {
 app.get("/api/chats/:chatId", async (request, reply) => {
   const session = await getSession((request.params as any).chatId);
   if (!session) return reply.code(404).send({ error: "Chat not found" });
-  return session;
+  return { ...session, activeRun: activeRuns.get(session.id)?.message };
+});
+
+app.get("/api/chats/:chatId/agents", async (request, reply) => {
+  const chatId = (request.params as any).chatId;
+  if (!await getSession(chatId)) return reply.code(404).send({ error: "Chat not found" });
+  return subagents.list(chatId);
+});
+
+app.post("/api/chats/:chatId/agents/:agentId/cancel", async (request, reply) => {
+  const { chatId, agentId } = request.params as any;
+  if (!await getSession(chatId)) return reply.code(404).send({ error: "Chat not found" });
+  try { return await subagents.cancel(chatId, agentId); }
+  catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : String(error) }); }
+});
+
+app.get("/api/chats/:chatId/events", async (request, reply) => {
+  const chatId = (request.params as any).chatId;
+  if (!await getSession(chatId)) return reply.code(404).send({ error: "Chat not found" });
+  reply.hijack();
+  reply.raw.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" });
+  const active = activeRuns.get(chatId);
+  if (!active) {
+    reply.raw.end(`data: ${JSON.stringify({ type: "idle" })}\n\n`);
+    return;
+  }
+  const send: Emit = (event) => {
+    if (!reply.raw.destroyed) reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+    if (event.type === "done") reply.raw.end();
+  };
+  reply.raw.write(`data: ${JSON.stringify({ type: "snapshot", data: active.message })}\n\n`);
+  active.listeners.add(send);
+  const heartbeat = setInterval(() => { if (!reply.raw.destroyed) reply.raw.write(": keepalive\n\n"); }, 15_000);
+  reply.raw.on("close", () => { clearInterval(heartbeat); active.listeners.delete(send); });
 });
 
 app.get("/api/chats/:chatId/browser/events", async (request, reply) => {
@@ -210,9 +259,11 @@ app.post("/api/chats/:chatId/upload", async (request, reply) => {
 });
 
 app.post("/api/chats/:chatId/stop", async (request) => {
-  const control = activeRuns.get((request.params as any).chatId);
-  if (control) control.cancelled = true;
-  return { stopped: Boolean(control) };
+  const chatId = (request.params as any).chatId;
+  const active = activeRuns.get(chatId);
+  if (active) cancelRun(active.control);
+  await subagents.cancelParent(chatId);
+  return { stopped: Boolean(active) };
 });
 
 app.post("/api/chats/:chatId/messages", async (request, reply) => {
@@ -223,9 +274,20 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
   if (!text?.trim()) return reply.code(400).send({ error: "Message text is required" });
   if (activeRuns.has(chatId)) return reply.code(409).send({ error: "A run is already active" });
 
+  const control: RunControl = { cancelled: false, controller: new AbortController() };
+  const assistantMessage: ChatMessage = { id: randomUUID(), role: "assistant", text: "", createdAt: new Date().toISOString(), activity: [] };
+  const active = { control, message: assistantMessage, listeners: new Set<Emit>() };
+  activeRuns.set(chatId, active);
+
   const userMessage: ChatMessage = { id: randomUUID(), role: "user", text: text.trim(), createdAt: new Date().toISOString() };
   session.messages.push(userMessage);
-  await saveSession(session);
+  try {
+    await saveSession(session);
+    await writeJson(activeRunPath(chatId), assistantMessage);
+  } catch (error) {
+    activeRuns.delete(chatId);
+    throw error;
+  }
 
   reply.hijack();
   reply.raw.writeHead(200, {
@@ -233,29 +295,49 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
   });
-  const activity: ToolEvent[] = [];
+  const activity = assistantMessage.activity!;
   let assistantText = "";
+  let pendingSave = Promise.resolve();
+  const persist = () => {
+    const snapshot = structuredClone(assistantMessage);
+    pendingSave = pendingSave.then(() => writeJson(activeRunPath(chatId), snapshot)).catch((error) => request.log.error(error));
+  };
+  const checkpointTimer = setInterval(persist, 1000);
   const send = (event: ToolEvent) => {
     if (event.type === "text_delta") assistantText += String(event.data ?? "");
-    if (["tool_start", "tool_end", "status", "error"].includes(event.type)) activity.push(event);
-    reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+    assistantMessage.text = assistantText;
+    if (event.type === "agent_update") {
+      const id = (event.data as { id: string }).id;
+      const previous = activity.findIndex((item) => item.type === "agent_update" && (item.data as { id: string }).id === id);
+      if (previous >= 0) activity[previous] = event;
+      else activity.push(event);
+    } else if (["tool_start", "tool_end", "status", "error"].includes(event.type)) activity.push(event);
+    if (event.type !== "text_delta" && event.type !== "browser_frame") persist();
+    if (!reply.raw.destroyed) reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+    for (const listener of active.listeners) listener(event);
   };
-  const control: RunControl = { cancelled: false };
-  activeRuns.set(chatId, control);
+  const unsubscribe = subagents.subscribe(chatId, send);
 
   try {
-    assistantText = await runAgent(session, userMessage.text, send, control);
+    assistantText = await runAgent(session, userMessage.text, send, control, undefined, subagents.forTurn(chatId, assistantMessage.id, control));
   } catch (error) {
-    send({ type: "error", data: error instanceof Error ? error.message : String(error) });
+    send({ type: control.cancelled ? "status" : "error", data: control.cancelled ? { message: "Run stopped." } : error instanceof Error ? error.message : String(error) });
   } finally {
+    let saved = false;
     try {
-      const assistantMessage: ChatMessage = { id: randomUUID(), role: "assistant", text: assistantText, createdAt: new Date().toISOString(), activity };
+      await subagents.cancelParent(chatId);
+      assistantMessage.text = assistantText;
       session.messages.push(assistantMessage);
       await saveSession(session);
+      saved = true;
       send({ type: "done", data: assistantMessage });
     } finally {
+      clearInterval(checkpointTimer);
+      unsubscribe();
+      await pendingSave;
+      if (saved) await unlink(activeRunPath(chatId)).catch(() => {});
       activeRuns.delete(chatId);
-      reply.raw.end();
+      if (!reply.raw.destroyed) reply.raw.end();
     }
   }
 });
@@ -266,3 +348,14 @@ const port = Number(process.env.PORT || 3000);
 // Default to the requested LAN interface; override with HOST if needed.
 const host = process.env.HOST || "192.168.1.172";
 await app.listen({ port, host });
+
+let shuttingDown = false;
+const shutdown = async () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  for (const { control } of activeRuns.values()) cancelRun(control);
+  await subagents.close();
+  process.exit(0);
+};
+process.once("SIGTERM", shutdown);
+process.once("SIGINT", shutdown);

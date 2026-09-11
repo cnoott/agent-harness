@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { launchPersistentContext } from "cloakbrowser";
 import { workspacePath } from "./store.js";
-import { getModelConfig } from "./model.js";
+import { getModelConfig, type ModelSelection } from "./model.js";
 
 type BrowserTool = "browser_open" | "browser_observe" | "browser_act" | "browser_extract" | "browser_screenshot";
 type BrowserControlAction =
@@ -115,11 +115,11 @@ async function readPage(page: any, mode: "content" | "actions") {
   return JSON.parse(value);
 }
 
-async function getBrowser(chatId: string): Promise<BrowserSession> {
+async function getBrowser(chatId: string, selection?: ModelSelection): Promise<BrowserSession> {
   const existing = sessions.get(chatId);
   if (existing) return existing;
 
-  const { provider, model, apiKey } = getModelConfig(true);
+  const { provider, model, apiKey } = getModelConfig(true, selection);
   const { Stagehand } = await import("@browserbasehq/stagehand");
   const userDataDir = path.join(workspacePath(chatId), "..", "browser-profile");
   await mkdir(userDataDir, { recursive: true, mode: 0o700 });
@@ -171,8 +171,13 @@ async function captureScreenshot(chatId: string, page: any) {
   };
 }
 
-export async function runBrowserTool(chatId: string, name: BrowserTool, args: Record<string, unknown>) {
-  const session = await getBrowser(chatId);
+export async function runBrowserTool(chatId: string, name: BrowserTool, args: Record<string, unknown>, selection?: ModelSelection, signal?: AbortSignal) {
+  signal?.throwIfAborted();
+  const session = await getBrowser(chatId, selection);
+  if (signal?.aborted) {
+    await closeBrowser(chatId);
+    signal.throwIfAborted();
+  }
   const { page, stagehand } = session;
   if (name === "browser_open") {
     await page.goto(String(args.url), { waitUntil: "domcontentloaded" });

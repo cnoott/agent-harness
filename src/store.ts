@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, realpath, symlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readdir, readFile, realpath, rename, symlink, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -7,6 +7,7 @@ import type { ChatSession } from "./types.js";
 const dataRoot = path.resolve(process.cwd(), ".data", "sessions");
 
 export function workspacePath(chatId: string) {
+  if (chatId.startsWith("worker-")) return path.resolve(dataRoot, "..", "agents", chatId, "workspace");
   return path.join(dataRoot, chatId, "workspace");
 }
 
@@ -47,8 +48,23 @@ export async function getSession(chatId: string): Promise<ChatSession | null> {
 }
 
 export async function saveSession(session: ChatSession) {
-  await mkdir(path.dirname(sessionPath(session.id)), { recursive: true });
-  await writeFile(sessionPath(session.id), JSON.stringify(session, null, 2));
+  const file = sessionPath(session.id);
+  await mkdir(path.dirname(file), { recursive: true });
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    const handle = await open(temporary, "wx", 0o600);
+    try {
+      await handle.writeFile(JSON.stringify(session, null, 2));
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    await rename(temporary, file);
+  } finally {
+    await unlink(temporary).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error;
+    });
+  }
 }
 
 export async function listSessions(): Promise<ChatSession[]> {

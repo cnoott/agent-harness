@@ -146,6 +146,18 @@ code { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: #e4b8ff
 .file-error { margin-bottom: 12px; color: #ffadad; font-size: 12px; line-height: 1.45; }
 .file-error:empty { display: none; }
 .hidden { display: none !important; }
+.workers { display: grid; gap: 10px; margin-bottom: 18px; }
+.worker-card { min-width: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-soft); }
+.worker-card > summary { display: flex; align-items: center; gap: 12px; padding: 13px 15px; cursor: pointer; }
+.worker-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.worker-status { flex-shrink: 0; color: var(--muted); font-size: 11px; }
+.worker-card[data-worker-status="running"] .worker-status, .worker-card[data-worker-status="completed"] .worker-status { color: var(--accent); }
+.worker-card[data-worker-status="failed"] .worker-status, .worker-card[data-worker-status="blocked"] .worker-status, .worker-card[data-worker-status="interrupted"] .worker-status { color: #ffb3b3; }
+.worker-body { padding: 0 15px 15px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.worker-body > p { margin: 0 0 10px; }
+.worker-meta { color: var(--muted); font-size: 11px; }
+.worker-artifact { display: block; margin: 8px 0; color: var(--accent); }
+.worker-output { max-height: 350px; overflow: auto; }
 @media (max-width: 980px) { html, body { height: auto; overflow: auto; } main { grid-template-columns: 1fr; height: auto; overflow: visible; } .workspace-panel { border-top: 1px solid var(--border); } .chat-panel { border-right: 0; height: calc(100dvh - 89px); min-height: 400px; } header { padding: 18px; } .messages { padding: 20px 24px; } #composer { padding-inline: 24px; } }
 @media (max-width: 520px) { header { gap: 12px; } h1 { font-size: 18px; } #chat-id { display: none; } .header-actions { gap: 6px; } .messages { padding-inline: 18px; } #composer { padding: 8px 12px 14px; } .workspace-panel { padding: 24px 18px; } .message.user .message-content { max-width: 94%; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
