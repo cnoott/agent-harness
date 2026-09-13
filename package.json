@@ -6,6 +6,8 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "nfl:import": "tsx scripts/import-nfl-games.ts",
     "test:subagents": "tsx --test tests/subagents.test.ts",
     "fantasy:grade": "tsx scripts/grade-fantasy-lineup.ts",
     "fantasy:fixtures": "tsx scripts/build-nba-replay-fixtures.ts",
@@ -13,7 +15,8 @@
     "fantasy:shadow:register": "tsx scripts/register-fantasy-shadow.ts",
     "fantasy:shadow:predict": "tsx scripts/predict-fantasy-shadow.ts",
     "fantasy:shadow:grade": "tsx scripts/grade-fantasy-shadow.ts",
-    "sandbox:build": "docker build -t sandbox-harness:local -f sandbox/Dockerfile sandbox"
+    "sandbox:build": "docker build -t sandbox-harness:local -f sandbox/Dockerfile sandbox",
+    "nfl:backup": "tsx scripts/backup-nfl.ts"
   },
   "dependencies": {
     "@browserbasehq/stagehand": "^3.0.0",

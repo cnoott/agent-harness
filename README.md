@@ -2,11 +2,41 @@
 
 A deliberately thin local agent harness: an OpenAI or Gemini model can use a persistent Docker workspace and a Stagehand-controlled browser through a simple chat interface.
 
+[Saved NFL game data](docs/nfl-data.md) — automatically collect current-season ESPN games, refresh active games roughly every minute, and query saved play-by-play from NFL chats.
+
+[Persistence and run audits](docs/persistence-and-runs.md) — Docker persistence, verified NFL backups, and per-run tool/model inspection.
+
+Durable files live locally in Git-ignored `.data/`. Stopped sandboxes restart against those same files; uploads and browser downloads publish complete artifacts, and command output is saved in bounded local logs. Agents can retrieve prior evidence with `history_read` when their tool permissions allow it.
+
+[Slash commands](docs/commands.md) — use `/roster` in NFL chats, discover workflows with `/help`, and register reusable commands that automatically appear in both help and the menu.
+
+The composer has a per-chat model selector beside a context ring. Click the ring for the latest request's input usage, verified model capacity, and separate run compaction trigger; `~` marks estimates. Unknown model limits remain unknown, and measurements persist with new assistant messages.
+
+The adjacent provider usage control shows recorded tokens and estimated spend across that provider's models in retained chat and worker audits. Missing usage or pricing is marked partial or unavailable. This is an app estimate, not your provider account bill; see [coverage and pricing](docs/persistence-and-runs.md#metrics-and-limits).
+
+## Current sports flow
+
+```mermaid
+flowchart LR
+    ESPN[ESPN schedule and plays] --> Collector[Server collector: roughly every minute]
+    Collector --> DB[App-owned NFL SQLite]
+    DB --> Games[Games grid]
+    DB --> SQL[Read-only sports_query]
+    Question[Your question] --> Chat[League chat and workers]
+    SQL --> Chat
+    Chat --> Research[Research sources as needed]
+    Research --> Evidence[Saved sport-specific evidence and answer]
+    Chat --> Audit[Durable run records and context usage]
+```
+
+NFL collection makes no model calls and continues while the server runs. Chats share research within NFL or NBA, with each sport kept separate. News research happens on request; the five-minute background news agent and monitoring settings are removed.
+
 ## What it includes
 
-- Shared persistent files, including SQLite (`sqlite3`) so the agent can create task-specific databases and schemas. New chats default to the current workspace; the new-chat picker can select an existing workspace or create a named, empty workspace that later chats can reuse.
+- Shared persistent files, including SQLite (`sqlite3`) so the agent can create task-specific databases and schemas. Select NFL or NBA with the workspace toggle; New chat inherits that sport. Chats in the same sport reuse saved research, scripts, and league settings; the two sports keep separate files. Each workspace starts with a `LEAGUE.md` for your website, team, and rules, initially unknown until supplied or verified.
 - One Docker sandbox per chat, with the selected workspace mounted at `/workspace`. Chat history and browser profiles remain per chat.
 - A small tool set: `exec`, `browser_open`, `browser_observe`, `browser_act`, `browser_extract`, and `browser_screenshot`.
+- NFL chats and NFL workers additionally have `sports_query` for read-only SQL over imported games, subject to run-specific tool restrictions.
 - A direct OpenAI Responses API or Google Gemini API tool loop with streamed text and visible tool activity.
 - The main agent can delegate bounded assignments to instances of the same harness, selecting an OpenAI or Gemini model for each worker. Sub-agents appear as activity cards in the parent response, with their status, model, elapsed time, token usage, deliverable, and artifact downloads. They have no separate chats or message composer.
 - File upload, browsing, explicit downloads, and confirmed deletion in the workspace UI.
@@ -22,7 +52,7 @@ A deliberately thin local agent harness: an OpenAI or Gemini model can use a per
 
 ## Prerequisites
 
-- Node.js 22 or newer
+- Node.js 22.13 or newer (built-in SQLite; experimental in Node 22)
 - Docker Desktop running
 - An OpenAI or Google Gemini API key
 
@@ -52,15 +82,45 @@ GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-Restart the server after editing `.env`. Chat, durable memory, and browser actions all use the selected provider. Gemini does not require an OpenAI key.
+Restart the server after editing `.env`. These settings choose the default model; each chat can save its own choice using the composer selector. Chat, durable memory, and browser actions use that chat's selected model. Gemini does not require an OpenAI key.
 
 Set `MODEL_PROVIDER=openai` to switch back. If `MODEL_PROVIDER` is blank, the harness selects Gemini when only `GEMINI_API_KEY` is set; otherwise it defaults to OpenAI. When both keys are present, set the provider explicitly.
 
+The selector lists configured primary and worker models for providers with an API key. Its saved choice applies to the chat's next main turn; it cannot change during an active run, worker, league refresh, or while archived. Workers keep their independently selected models. Switching models resets the live browser connection while retaining its saved profile and the conversation.
+
 The Gemini integration uses Google's [Gen AI JavaScript SDK](https://googleapis.github.io/js-genai/release_docs/) and Stagehand's [Google model support](https://docs.stagehand.dev/v3/configuration/models).
+
+## Chat views
+
+Chats live in a collapsible left sidebar, the conversation stays in the center, and workspace controls live in the right rail. The sidebar shows the selected sport's **Active** or **Archived** chats and its **New chat** button.
+
+The right rail groups **My matchup**, **Games**, **Teams**, and **Waivers** under **League**; **Files** under **Workspace**; and **Runs** and **Browser** under **Chat activity**. One content panel opens beside the conversation at a time and starts closed on page load or chat changes. Click its selected button, Close, or Escape to close it; the rail stays available.
+
+The **NFL / NBA** toggle in the right rail switches sport workspaces and remembers the last chat in each sport. **New NFL chat** or **New NBA chat** creates a chat in the selected workspace. Switching sports preserves unsent drafts during the current page session and clears the previous sport's panel data. NBA uses ESPN Fantasy, but its league connection and NBA game collection are not implemented yet; NBA views show an explicit unconnected state rather than NFL data.
+
+Each chat's options menu offers **Archive** and **Delete**. Archive keeps the conversation and research under **Archived**, where you can inspect or restore it. Permanent deletion removes the chat, its run history, workers, and browser profile; its dialog lets you select shared research files to remove, with none selected automatically. Unselected sport files and the NFL database remain. Stop active runs and workers first. See [chat retention](docs/persistence-and-runs.md#archive-and-permanent-deletion).
+
+- **My matchup** shows your Sleeper NFL starters beside this week's opponent, fantasy points, game times/status, and your collapsible bench. **Refresh data** runs the bundled roster script in Docker without model calls; **Check my lineup** drafts a research question using the saved roster and a request to verify current injuries and lock rules. Scores and the daily injury catalog show separate retrieval times.
+- **Games** shows the saved NFL schedule and freshness, available in NFL chats.
+- **Teams** opens a searchable league overview with team records and roster/position counts. Choose a team to open **Trade builder**: independently scroll and filter both rosters, build a **You send / You receive** package, then draft a trade discussion. It reads saved `/roster` data and displays its retrieval time; **Ask agent to refresh** drafts `/roster` for you to send.
+- **Waivers** searches active, league-eligible NFL players absent from every saved roster. Filter by position or NFL team, select a possible pickup and optional drop, and draft a research question. Ownership and catalog freshness are shown separately; claim eligibility still needs verification. The view uses cached data and submits no claims.
+- **Runs** shows main-agent and worker audits: tool inputs/results, interruptions, model usage, and final output. Select a run to inspect evidence; large records load in parts.
+- **Files** shows uploads, reports, and **League settings** (`LEAGUE.md`). Internal `.harness/` artifacts are hidden from this list; their files and direct artifact links remain available.
+- **Browser** becomes available with browser activity. A browser tool opens the panel automatically if it is closed. It does not replace another selected view, and repeated frames do not reopen a panel you minimized. Take control remains available when the agent is idle.
+
+On narrow screens, the chat sidebar opens as an overlay, and content panels cover the conversation with a Close control. The right rail remains visible. Opening a view does not change NFL collection cadence.
+
+## Research on request
+
+Ask the NFL or NBA chat to investigate a player, trade, lineup, or news question. The harness can browse sources, execute scripts, and save research in that sport's workspace. Supply your roster and scoring rules for league-specific questions; saved evidence needs freshness checks before reuse.
+
+Automatic news polling, Gemini headline screening, and background news research have been removed. There are no monitoring controls or `MONITOR_*` settings. OpenAI and Gemini settings still configure interactive chats and workers. Automatic NFL schedule and play-by-play collection continues independently, without model calls.
+
+Existing research remains at its original paths. Old background runs under `.data/workspaces/<sport>/runs/` with `request.json` origin `monitor` stay hidden from Files; agents and direct workspace file downloads can still access them. The old `.data/monitor/` state is inactive and is not loaded by the server. Its queue will not resume. Monitoring-specific package download endpoints have been removed; saved `output/result-*.json` packages remain available on disk and through workspace downloads.
 
 ## Notes
 
-- The default shared workspace lives at `.data/workspaces/shared`. Each new UI chat links `.data/sessions/<id>/workspace` to its selected folder, so uploads, downloads, and agent commands all use the same files. Earlier chats keep their existing folders and can share them with new chats through the picker; files are not moved or merged. Replay and shadow-evaluation scripts still create isolated workspaces.
+- Sport workspaces live at `.data/workspaces/nfl` and `.data/workspaces/nba`, created on first use. Each UI chat links `.data/sessions/<id>/workspace` to its selected folder. New-chat requests require `workspaceId: "nfl"` or `"nba"`; custom workspace creation is unavailable. Earlier chats remain accessible through history with their existing folders; files are not moved or merged. Replay and shadow-evaluation scripts still create isolated workspaces.
 - The browser uses CloakBrowser's persistent Chromium profile with Stagehand attached in `LOCAL` mode for browser actions. CloakBrowser manages graceful browser shutdown to save login storage. CloakBrowser downloads its binary on the first browser session; the host does not need a separate Chrome/Chromium installation.
 - Each chat saves its Chromium profile at `.data/sessions/<id>/browser-profile`, outside the Docker workspace and file-download routes. Sign in once in the harness browser after enabling this; persistent cookies and site storage are reused when you reopen the same chat after a restart. Existing temporary browser logins are not migrated. New chats have separate profiles, and sites can still expire logins. Profiles are local and excluded from Git.
 - The agent has broad control over its own Docker workspace. This is a prototype harness, not a hardened multi-user environment.

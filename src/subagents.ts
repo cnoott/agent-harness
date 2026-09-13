@@ -1,11 +1,11 @@
 import { randomUUID, createHash } from "node:crypto";
-import { appendFile, copyFile, mkdir, readdir, realpath, stat } from "node:fs/promises";
+import { appendFile, copyFile, mkdir, readdir, realpath, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { cancelRun, emptyRunStats, runAgent, type Emit, type RunControl, type RunOptions, type RunStats } from "./agent.js";
 import { availableModels, type ModelSelection } from "./model.js";
 import { closeBrowser } from "./browser.js";
 import { stopSandbox } from "./sandbox.js";
-import { workspacePath } from "./store.js";
+import { getSession, workspacePath } from "./store.js";
 import { readJson, writeJson, type AgentCheckpoint } from "./run-state.js";
 
 export type WorkerResult = {
@@ -100,6 +100,24 @@ export class Subagents {
 
   list(parentId: string) {
     return [...this.records.values()].filter((record) => record.parentId === parentId).map((record) => this.view(record));
+  }
+
+  hasActive(parentId: string) {
+    return [...this.records.values()].some(record => record.parentId === parentId && (activeStatuses.has(record.status) || this.running.has(record.id)));
+  }
+
+  async deleteParent(parentId: string) {
+    const records = [...this.records.values()].filter(record => record.parentId === parentId);
+    if (this.hasActive(parentId)) throw new Error("Stop this chat's workers before deleting it.");
+    for (const record of records) {
+      await this.writes.get(record.id);
+      await closeBrowser(record.id);
+      await stopSandbox(record.id, true);
+      await rm(path.dirname(recordPath(record.id)), { recursive: true, force: true });
+      this.records.delete(record.id);
+      this.writes.delete(record.id);
+    }
+    this.listeners.delete(parentId);
   }
 
   private owned(parentId: string, id: unknown) {
@@ -198,7 +216,8 @@ export class Subagents {
       await this.save(record);
       const prompt = `Assignment:\n${record.task}\n\nSelected context:\n${record.context}\n\nRequired deliverable:\n${record.expectedOutput}`;
       const checkpoint = await readJson<AgentCheckpoint>(checkpointPath(record.id));
-      await this.runner({ id: record.id, createdAt: record.createdAt, messages: [] }, prompt, (event) => {
+      const parent = await getSession(record.parentId);
+      await this.runner({ id: record.id, workspaceId: parent?.workspaceId, workspaceName: parent?.workspaceName, createdAt: record.createdAt, messages: [] }, prompt, (event) => {
         if (event.type === "browser_frame") return;
         trace = trace.then(() => appendFile(path.join(workerRoot, record.id, "activity.jsonl"), `${JSON.stringify(event)}\n`, { mode: 0o600 }));
         if (event.type === "tool_start" && record.status === "running") {
@@ -208,6 +227,7 @@ export class Subagents {
         trace = trace.catch((error) => console.error("Could not persist worker activity", record.id, error instanceof Error ? error.message : String(error)));
       }, control, record.stats, {
         worker: true, model: record.model, inputDirectory: workspacePath(record.parentId),
+        runId: `${record.id}-${record.attempts}`, parentId: record.parentId, parentRunId: record.parentRunId,
         allowedTools: record.allowedTools, sandboxNetworkEnabled: record.networkEnabled,
         maxSteps: record.maxSteps, maxRuntimeMs: record.maxRuntimeMs,
         extraTools: [finishTaskTool], checkpoint,
