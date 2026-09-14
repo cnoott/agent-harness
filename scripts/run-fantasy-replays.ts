@@ -104,7 +104,9 @@ async function main() {
       try {
         await cp(path.join(fixture, "visible"), workspace, { recursive: true });
         const prompt = await readFile(path.join(workspace, "request.md"), "utf8");
-        await runAgent(session, prompt, () => undefined, { cancelled: false }, stats);
+        await runAgent(session, prompt, () => undefined, { cancelled: false }, stats, {
+          allowedTools: ["exec"], sandboxNetworkEnabled: false,
+        });
         const recommendationPath = path.join(workspace, "recommendation.json");
         if (!existsSync(recommendationPath)) throw new Error("Agent did not create recommendation.json");
         const recommendationText = await readFile(recommendationPath, "utf8");
@@ -140,6 +142,7 @@ async function main() {
   }
 
   const agentRows = results.filter((row) => row.status !== "baselines_only");
+  const scoredAgentRows = agentRows.filter((row) => typeof row.regret === "number" && Number.isFinite(row.regret));
   const summary = {
     generatedAt: new Date().toISOString(),
     fixtureRoot,
@@ -147,8 +150,9 @@ async function main() {
     model,
     slates: selected.length,
     agentRuns: agentRows.length,
+    scoredAgentRuns: scoredAgentRows.length,
     passed: agentRows.filter((row) => row.status === "passed").length,
-    meanRegret: agentRows.length ? agentRows.reduce((sum, row) => sum + Number(row.regret || 0), 0) / agentRows.length : null,
+    meanRegret: scoredAgentRows.length ? scoredAgentRows.reduce((sum, row) => sum + Number(row.regret), 0) / scoredAgentRows.length : null,
     totalTokens: agentRows.reduce((sum, row) => sum + Number(row.totalTokens || 0), 0),
     results,
   };

@@ -1,0 +1,4 @@
+{
+  "description": "Refresh validated Sleeper NFL fantasy points, weekly rankings, and matchup results.",
+  "instructions": "Run the bundled fantasy_update.py script through exec from /workspace. Pass --week N only when the user requests a specific week. Verify successful completion and the refreshed_at timestamp before summarizing data/sleeper/<league-id>/fantasy-latest.json. Show effective team totals, including commissioner overrides. Distinguish current leaders, ties, and completed matchups; do not call a current leader the winner. Preserve unknown scores. Do not modify rosters or submit transactions."
+}

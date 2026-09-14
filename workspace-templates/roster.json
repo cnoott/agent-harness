@@ -1,0 +1,4 @@
+{
+  "description": "Refresh and show your Sleeper NFL roster using scripts/roster.py; saves a dated league snapshot.",
+  "instructions": "Read /workspace/LEAGUE.md. Run python /workspace/scripts/roster.py through exec from /workspace. The script uses Sleeper's read-only API without login. If it exits nonzero, report the specific problem and do not present old data as refreshed. On success, show the saved team's starters and bench/reserve/taxi players, with positions and NFL teams, exact league lineup slots, and retrieval time. Cite the saved snapshot path. Missing player names remain unknown. A script option can select a confirmed league ID or roster ID; never guess these. Do not call unrostered players immediately claimable without checking waiver rules. Do not modify any roster or submit transactions. Additional user requests can be researched after this refresh."
+}

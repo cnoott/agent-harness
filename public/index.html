@@ -7,28 +7,13 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header>
-      <div>
-        <p class="eyebrow">LOCAL AGENT HARNESS</p>
-        <h1>Sandbox Harness</h1>
-      </div>
-      <div class="header-actions">
-        <span id="chat-id" class="muted"></span>
-        <button id="history-toggle" class="secondary icon-button" type="button" aria-expanded="false" aria-controls="history-drawer" title="Previous chats">☰</button>
-        <button id="new-chat" class="secondary">New chat</button>
-      </div>
-    </header>
     <dialog id="new-chat-dialog" aria-labelledby="new-chat-title" aria-describedby="new-chat-description">
       <form id="new-chat-form">
         <h2 id="new-chat-title">New chat</h2>
-        <p id="new-chat-description" class="workspace-copy">Start fresh with access to the files in your selected workspace.</p>
-        <label for="new-chat-workspace">Workspace</label>
-        <select id="new-chat-workspace" name="workspaceId"></select>
-        <div id="new-workspace-fields" class="hidden">
-          <label for="new-workspace-name">Workspace name</label>
-          <input id="new-workspace-name" name="workspaceName" maxlength="80" placeholder="e.g. Research project" autocomplete="off" />
-        </div>
-        <p class="workspace-copy">Reuse a workspace to share its files, or create a new one to start with an empty folder.</p>
+        <p id="new-chat-description" class="workspace-copy">Choose the sport for your new research chat.</p>
+        <label for="new-chat-workspace">Sport</label>
+        <select id="new-chat-workspace" name="workspaceId" required></select>
+        <p class="workspace-copy">Chats in the same sport share saved research, scripts, and league settings. NFL and NBA files stay separate.</p>
         <p id="new-chat-error" class="composer-error" role="alert"></p>
         <div class="new-chat-actions">
           <button id="cancel-new-chat" type="button" class="secondary">Cancel</button>
@@ -36,77 +21,258 @@
         </div>
       </form>
     </dialog>
-    <aside id="history-drawer" class="history-drawer" aria-label="Previous chats" aria-hidden="true">
-      <div class="history-heading">
-        <div>
-          <p class="eyebrow">HISTORY</p>
-          <h2>Previous chats</h2>
+    <dialog id="delete-chat-dialog" aria-labelledby="delete-chat-title">
+      <form id="delete-chat-form">
+        <h2 id="delete-chat-title">Delete chat permanently?</h2>
+        <p id="delete-chat-name" class="workspace-copy"></p>
+        <p>Deletes the conversation, run history, worker files, and this chat's browser sign-in. This cannot be undone.</p>
+        <p id="delete-chat-scope" class="workspace-copy"></p>
+        <div id="delete-chat-research" hidden>
+          <label for="delete-chat-search">Find shared research files</label>
+          <input id="delete-chat-search" type="search" placeholder="Filter by file name…">
+          <div id="delete-chat-files" class="delete-chat-files"></div>
+          <p id="delete-chat-count" class="workspace-copy">No shared files selected.</p>
         </div>
-        <button id="history-close" class="secondary icon-button" type="button" aria-label="Close chat history">×</button>
-      </div>
-      <div id="history-list" class="history-list"></div>
-    </aside>
-    <div id="history-backdrop" class="history-backdrop hidden"></div>
-    <main>
-      <section class="chat-panel">
-        <div id="messages" class="messages" role="region" aria-label="Conversation" tabindex="0"></div>
-        <form id="composer">
-          <div class="composer-box">
-            <textarea id="prompt" rows="1" aria-label="Message" aria-describedby="composer-hint" placeholder="Message the agent…"></textarea>
-            <div class="composer-actions">
-              <label class="upload" title="Upload files to the workspace">
-                <input id="file-input" type="file" multiple aria-label="Attach files" />
-                <span>＋ Attach</span>
-              </label>
-              <span id="status" class="muted" role="status">Ready</span>
-              <button id="voice-cancel" type="button" class="secondary hidden">Cancel</button>
-              <button id="voice" type="button" class="secondary voice-button" aria-label="Start voice input" title="Start voice input" aria-pressed="false" disabled>
-                <svg class="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
-                <span class="recording-stop hidden" aria-hidden="true">■</span>
-              </button>
-              <button id="stop" type="button" class="secondary hidden">Stop</button>
-              <button id="send" type="submit" aria-label="Send message" title="Send message" disabled>↑</button>
-            </div>
-          </div>
-          <p id="composer-error" class="composer-error hidden" role="alert"></p>
-          <p id="composer-hint" class="composer-hint">Enter to send · Shift + Enter for a new line</p>
-        </form>
-      </section>
-      <aside class="workspace-panel">
-        <section id="browser-preview" class="browser-preview hidden" aria-live="polite">
-          <div class="preview-heading">
-            <div>
-              <p class="eyebrow">LIVE</p>
-              <h2>Browser view</h2>
-            </div>
-            <span id="browser-preview-status" class="muted">Waiting</span>
-          </div>
-          <div class="preview-frame"><img id="browser-preview-image" alt="Live browser preview" /></div>
-          <a id="browser-preview-url" class="preview-url" target="_blank" rel="noreferrer"></a>
-          <div class="browser-controls">
-            <button id="browser-control-toggle" type="button" class="secondary">Take control</button>
-            <div id="browser-control-panel" class="browser-control-panel hidden">
-              <button id="browser-back" type="button" class="secondary" title="Back">←</button>
-              <input id="browser-type" autocomplete="off" placeholder="Type into the focused field…" />
-              <button id="browser-type-send" type="button" class="secondary">Type</button>
-              <button class="browser-key secondary" type="button" data-key="Enter">Enter</button>
-              <button class="browser-key secondary" type="button" data-key="Escape">Esc</button>
-            </div>
-            <p id="browser-control-hint" class="browser-control-hint hidden">Click or scroll the preview to control the browser.</p>
-          </div>
-        </section>
-        <div class="workspace-heading">
+        <p id="delete-chat-error" role="alert" class="workspace-copy"></p>
+        <div class="dialog-actions">
+          <button id="cancel-delete-chat" class="secondary" type="button">Cancel</button>
+          <button id="confirm-delete-chat" class="danger" type="submit" disabled>Delete permanently</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="app-shell">
+      <aside id="history-drawer" class="history-drawer" aria-label="Previous chats" aria-hidden="true">
+        <div class="history-heading">
           <div>
-            <p class="eyebrow">PERSISTENT</p>
-            <h2 id="workspace-name">Workspace</h2>
+            <p class="eyebrow">SANDBOX HARNESS</p>
+            <h2 id="history-title">Chats</h2>
           </div>
-          <button id="refresh-files" class="icon-button" title="Refresh files">↻</button>
+          <button id="history-close" class="secondary icon-button" type="button" aria-label="Close chat history">×</button>
         </div>
-        <p class="workspace-copy">Chats in this workspace share these files at <code>/workspace</code>. New chats reuse this workspace unless you choose another.</p>
-        <p id="files-error" class="file-error" role="alert"></p>
-        <div id="files" class="files"></div>
+        <button id="new-chat" class="secondary" type="button">New chat</button>
+        <div class="history-filters" role="group" aria-label="Chat history filter">
+          <button type="button" class="secondary" data-history-archived="false" aria-pressed="true">Active</button>
+          <button type="button" class="secondary" data-history-archived="true" aria-pressed="false">Archived</button>
+        </div>
+        <p id="history-error" class="workspace-copy" role="status"></p>
+        <div id="history-list" class="history-list">Loading chats…</div>
       </aside>
-    </main>
+      <div id="history-backdrop" class="history-backdrop hidden"></div>
+      <main>
+        <section class="chat-panel">
+          <header class="chat-heading">
+            <button id="history-toggle" class="secondary" type="button" aria-expanded="false" aria-controls="history-drawer" aria-label="Toggle chat sidebar" title="Toggle chat sidebar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
+              <span>Chats</span>
+            </button>
+            <h1>Sandbox Harness</h1>
+          </header>
+          <div id="archived-chat" class="archived-chat" hidden>Archived chat. History and research are saved. <button id="restore-current-chat" class="secondary" type="button">Restore chat</button></div>
+          <div id="messages" class="messages" role="region" aria-label="Conversation" tabindex="0"></div>
+          <form id="composer">
+            <section id="command-menu" class="command-menu" aria-label="Available commands" hidden>
+              <div class="command-heading"><strong>Commands</strong><button id="commands-close" class="secondary" type="button">Close commands</button></div>
+              <p id="command-status" class="muted" role="status"></p>
+              <div id="command-list"></div>
+            </section>
+            <div class="composer-box">
+              <textarea id="prompt" rows="1" aria-label="Message" aria-describedby="composer-hint" placeholder="Message the agent…"></textarea>
+              <div class="composer-actions">
+                <label class="upload" title="Upload files to the workspace">
+                  <input id="file-input" type="file" multiple aria-label="Attach files" />
+                  <span>＋ Attach</span>
+                </label>
+                <button id="commands-toggle" class="secondary" type="button" aria-expanded="false" aria-controls="command-menu" disabled>/ Commands</button>
+                <span id="status" class="muted" role="status">Ready</span>
+                <button id="voice-cancel" type="button" class="secondary hidden">Cancel</button>
+                <button id="voice" type="button" class="secondary voice-button" aria-label="Start voice input" title="Start voice input" aria-pressed="false" disabled>
+                  <svg class="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
+                  <span class="recording-stop hidden" aria-hidden="true">■</span>
+                </button>
+                <button id="stop" type="button" class="secondary hidden">Stop</button>
+                <button id="send" type="submit" aria-label="Send message" title="Send message" disabled>↑</button>
+              </div>
+            </div>
+            <div class="composer-model-bar">
+              <details id="context-usage" class="composer-detail context-usage">
+                <summary id="context-toggle" aria-label="Context window: not measured yet">
+                  <canvas id="context-ring" width="48" height="48" aria-hidden="true"></canvas>
+                </summary>
+                <div class="composer-popover context-popover" role="status">
+                  <p class="popover-heading">Context window:</p>
+                  <p id="context-fullness">Not measured yet</p>
+                  <p id="context-label">Measured after your next message</p>
+                  <p id="context-detail" class="popover-note"></p>
+                  <p id="compaction-label" class="popover-note" hidden></p>
+                </div>
+              </details>
+              <select id="chat-model" aria-label="Chat model" aria-describedby="model-status" disabled><option>Loading models…</option></select>
+              <details id="provider-usage" class="composer-detail provider-usage">
+                <summary id="spend-toggle" aria-label="Provider spending"><span id="provider-spend">Usage…</span></summary>
+                <div class="composer-popover spend-popover" role="status">
+                  <p id="spend-heading" class="popover-heading">Provider usage</p>
+                  <p id="spend-amount">Loading…</p>
+                  <p id="spend-tokens"></p>
+                  <p id="spend-breakdown" class="popover-note"></p>
+                  <p id="spend-coverage" class="popover-note"></p>
+                  <p id="spend-since" class="popover-note"></p>
+                  <button id="refresh-usage" class="secondary" type="button">Refresh usage</button>
+                </div>
+              </details>
+            </div>
+            <p id="model-status" class="model-status" role="status" hidden></p>
+            <button id="retry-models" class="secondary" type="button" hidden>Reload models</button>
+            <p id="composer-error" class="composer-error hidden" role="alert"></p>
+            <p id="composer-hint" class="composer-hint">Enter to send · Shift + Enter for a new line</p>
+          </form>
+        </section>
+        <aside id="context-panel" class="workspace-panel hidden" aria-labelledby="context-panel-title">
+          <div class="context-panel-heading">
+            <h2 id="context-panel-title" tabindex="-1">Games</h2>
+            <button id="context-panel-close" class="secondary" type="button" aria-label="Close side panel">Close</button>
+          </div>
+          <section id="nfl-games" class="nfl-games-panel panel-view hidden" data-panel="games" aria-labelledby="nfl-games-title">
+            <h2 id="nfl-games-title">NFL games</h2>
+            <p id="nfl-games-status" class="workspace-copy" role="status"></p>
+            <p id="nfl-games-error" class="file-error" role="alert"></p>
+            <ul id="nfl-games-list" class="nfl-games-list"></ul>
+          </section>
+          <section id="league-matchup" class="panel-view hidden" data-panel="matchup" aria-label="My NFL matchup">
+            <div class="rosters-heading"><h3 id="matchup-title">My NFL matchup</h3><button id="matchup-refresh" class="secondary" type="button">Refresh data</button></div>
+            <p id="matchup-status" class="workspace-copy" role="status"></p>
+            <p id="matchup-error" class="file-error" role="alert"></p>
+            <div id="matchup-content" hidden>
+              <p id="matchup-freshness" class="workspace-copy"></p>
+              <div class="matchup-columns"><div id="matchup-mine"></div><div id="matchup-opponent"></div></div>
+              <details class="matchup-bench"><summary>Your bench</summary><div id="matchup-bench"></div></details>
+            </div>
+            <div class="matchup-actions"><button id="matchup-lineup" type="button" disabled>Check my lineup</button><span class="workspace-copy">Adds a research question to chat for you to review and send.</span></div>
+            <p class="workspace-copy">Scores refresh on request. Game status uses the saved NFL feed. Injury labels come from the daily player catalog; check current reports before kickoff.</p>
+          </section>
+          <section id="league-rosters" class="panel-view hidden" data-panel="teams" aria-label="League rosters">
+            <div class="rosters-heading"><h3 id="rosters-title">Your league</h3><button id="rosters-refresh" class="secondary" type="button">Refresh data</button></div>
+            <p id="rosters-status" class="workspace-copy" role="status">Open an NFL chat to view teams.</p>
+            <p id="rosters-error" class="file-error" role="alert"></p>
+            <div id="rosters-content" hidden>
+              <p id="rosters-score-status" class="workspace-copy" role="status"></p>
+              <div class="rosters-tabs" role="group" aria-label="Teams view">
+                <button type="button" class="secondary" data-roster-view="overview" aria-pressed="true" aria-controls="rosters-overview">League overview</button>
+                <button id="trade-builder-tab" type="button" class="secondary" data-roster-view="builder" aria-pressed="false" aria-controls="rosters-builder">Trade builder <span id="trade-count" hidden></span></button>
+              </div>
+              <section id="rosters-overview" aria-label="League overview">
+                <label for="rosters-search">Find a player, team, or owner</label>
+                <input id="rosters-search" type="search" placeholder="Search your league…" />
+                <p id="rosters-count" class="rosters-caption" role="status"></p>
+                <div id="rosters-search-results" class="league-team-grid" tabindex="0" aria-label="League teams"></div>
+              </section>
+              <section id="rosters-builder" aria-label="Trade builder" hidden>
+                <div class="roster-builder-controls">
+                  <label>Trade partner<select id="rosters-opponent"></select></label>
+                  <label>Position<select id="rosters-position"><option value="">All positions</option></select></label>
+                </div>
+                <div class="roster-columns"><div id="roster-mine"></div><div id="roster-other"></div></div>
+                <aside class="trade-builder-summary" aria-label="Trade package">
+                  <div class="trade-summary-heading"><h3>Trade package</h3><button id="trade-clear" class="secondary" type="button">Clear all</button></div>
+                  <div class="trade-package-columns">
+                    <section class="trade-package-side trade-send" aria-label="You send"><h4>You send <span id="trade-send-count">0</span></h4><div id="trade-send-players"></div></section>
+                    <section class="trade-package-side trade-receive" aria-label="You receive"><h4>You receive <span id="trade-receive-count">0</span></h4><div id="trade-receive-players"></div></section>
+                  </div>
+                  <p id="trade-selection" class="rosters-caption" role="status">Select players from either roster.</p>
+                  <button id="trade-discuss" type="button">Explore trade ideas</button>
+                  <small>Creates a chat draft for you to review. No trade is submitted.</small>
+                </aside>
+              </section>
+            </div>
+          </section>
+          <section id="league-waivers" class="panel-view hidden" data-panel="waivers" aria-label="League waivers">
+            <div class="rosters-heading"><h3 id="waivers-title">Waiver players</h3><button id="waivers-refresh" class="secondary" type="button">Ask agent to refresh</button></div>
+            <p id="waivers-status" class="workspace-copy" role="status"></p>
+            <p id="waivers-error" class="file-error" role="alert"></p>
+            <div id="waivers-content" hidden>
+              <p class="waiver-notice">Unrostered in the saved snapshot. Claim timing and waiver eligibility still need verification.</p>
+              <div class="waiver-filters">
+                <label>Player or NFL team<input id="waivers-search" type="search" placeholder="Search players…" /></label>
+                <label>Position<select id="waivers-position"><option value="">All positions</option></select></label>
+              </div>
+              <label class="waiver-team-filter"><input id="waivers-team-only" type="checkbox" checked /> Has an NFL team</label>
+              <p id="waivers-count" class="workspace-copy"></p>
+              <div id="waivers-list"></div>
+              <button id="waivers-more" class="secondary" type="button" hidden>More players</button>
+              <div class="trade-draft">
+                <p id="waivers-selection" aria-live="polite">Select a player to research a pickup.</p>
+                <label for="waivers-drop">Compare with a player on your team</label>
+                <select id="waivers-drop"><option value="">No drop selected</option></select>
+                <button id="waivers-discuss" type="button" disabled>Discuss pickup</button>
+                <small>Adds a question to chat. No claim or drop is submitted.</small>
+              </div>
+            </div>
+          </section>
+          <section class="panel-view hidden" data-panel="runs" aria-label="Run audit">
+            <p class="workspace-copy">Saved tool calls, evidence, model usage, and outcomes. Logging starts with new runs; earlier chat activity remains in the conversation.</p>
+            <label for="run-agent">Agent</label>
+            <select id="run-agent"><option value="">Main chat</option></select>
+            <button id="runs-refresh" class="secondary" type="button">Refresh</button>
+            <p id="runs-status" class="workspace-copy" role="status"></p>
+            <p id="runs-error" class="file-error" role="alert"></p>
+            <div id="run-list"></div>
+            <button id="runs-more" class="secondary hidden" type="button">Older runs</button>
+            <button id="runs-back" class="secondary hidden" type="button">Back to runs</button>
+            <div id="run-events"></div>
+          </section>
+          <section id="browser-preview" class="browser-preview panel-view hidden" data-panel="browser" aria-label="Live browser">
+            <div class="preview-heading">
+              <div>
+                <p class="eyebrow">LIVE</p>
+                <h2>Browser view</h2>
+              </div>
+              <span id="browser-preview-status" class="muted">Waiting</span>
+            </div>
+            <div class="preview-frame"><img id="browser-preview-image" alt="Live browser preview" /></div>
+            <a id="browser-preview-url" class="preview-url" target="_blank" rel="noreferrer"></a>
+            <div class="browser-controls">
+              <button id="browser-control-toggle" type="button" class="secondary">Take control</button>
+              <div id="browser-control-panel" class="browser-control-panel hidden">
+                <button id="browser-back" type="button" class="secondary" title="Back">←</button>
+                <input id="browser-type" autocomplete="off" placeholder="Type into the focused field…" />
+                <button id="browser-type-send" type="button" class="secondary">Type</button>
+                <button class="browser-key secondary" type="button" data-key="Enter">Enter</button>
+                <button class="browser-key secondary" type="button" data-key="Escape">Esc</button>
+              </div>
+              <p id="browser-control-hint" class="browser-control-hint hidden">Click or scroll the preview to control the browser.</p>
+            </div>
+          </section>
+          <section class="panel-view hidden" data-panel="files" aria-label="Shared files">
+            <div class="workspace-heading">
+              <h3 id="workspace-name">Workspace</h3>
+              <button id="refresh-files" class="secondary" type="button" aria-label="Refresh files">Refresh</button>
+            </div>
+            <p class="workspace-copy">Uploads, saved reports, and league settings shared by chats in this sport.</p>
+            <p id="files-error" class="file-error" role="alert"></p>
+            <div id="files" class="files"></div>
+          </section>
+        </aside>
+      </main>
+      <aside class="workspace-navigation" aria-label="Workspace tools">
+        <h2>Workspace</h2>
+        <div class="sport-switcher" role="group" aria-label="Sport workspace">
+          <button type="button" data-sport="nfl" aria-pressed="false">NFL</button>
+          <button type="button" data-sport="nba" aria-pressed="false">NBA</button>
+        </div>
+        <nav class="panel-navigation" aria-label="Workspace panels">
+          <p class="nav-group-label">League</p>
+          <button id="matchup-toggle" class="secondary" type="button" data-open-panel="matchup" aria-controls="context-panel" aria-expanded="false" disabled>My matchup</button>
+          <button id="games-toggle" class="secondary" type="button" data-open-panel="games" aria-controls="context-panel" aria-expanded="false" disabled>Games</button>
+          <button id="teams-toggle" class="secondary" type="button" data-open-panel="teams" aria-controls="context-panel" aria-expanded="false" disabled>League</button>
+          <button id="waivers-toggle" class="secondary" type="button" data-open-panel="waivers" aria-controls="context-panel" aria-expanded="false" disabled>Waivers</button>
+          <p class="nav-group-label">Workspace</p>
+          <button id="files-toggle" class="secondary" type="button" data-open-panel="files" aria-controls="context-panel" aria-expanded="false" disabled>Files</button>
+          <p class="nav-group-label">Chat activity</p>
+          <button id="runs-toggle" class="secondary" type="button" data-open-panel="runs" aria-controls="context-panel" aria-expanded="false" disabled>Runs</button>
+          <button id="browser-toggle" class="secondary hidden" type="button" data-open-panel="browser" aria-controls="context-panel" aria-expanded="false">Browser</button>
+        </nav>
+        <span id="chat-id" class="muted" title="Current chat ID"></span>
+      </aside>
+    </div>
     <template id="message-template">
       <article class="message">
         <div class="message-meta"></div>
