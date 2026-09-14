@@ -102,7 +102,7 @@ Each chat's options menu offers **Archive** and **Delete**. Archive keeps the co
 
 - **My matchup** shows your Sleeper NFL starters beside this week's opponent, fantasy points, game times/status, and your collapsible bench. **Refresh data** runs the bundled roster script in Docker without model calls; **Check my lineup** drafts a research question using the saved roster and a request to verify current injuries and lock rules. Scores and the daily injury catalog show separate retrieval times.
 - **Games** shows the saved NFL schedule and freshness, available in NFL chats.
-- **Teams** opens a searchable league overview with team records and roster/position counts. Choose a team to open **Trade builder**: independently scroll and filter both rosters, build a **You send / You receive** package, then draft a trade discussion. It reads saved `/roster` data and displays its retrieval time; **Ask agent to refresh** drafts `/roster` for you to send.
+- **League** opens a searchable overview with team records, roster/position counts, and Sleeper fantasy totals. Choose a team to open **Trade builder**: view player points, independently scroll and filter both rosters, build a **You send / You receive** package, then draft a trade discussion. League and My matchup share the newest valid saved `/fantasy-update` report or `/roster` matchup snapshot, with the season, week, and retrieval time shown. Missing player scores can fall back to another snapshot of the same week; hover over a score for its retrieval time. Missing scores display “—”; zero and negative points are preserved. **Refresh data** fetches Sleeper through the existing sandbox endpoint without a model call, preserving your draft and trade selections.
 - **Waivers** searches active, league-eligible NFL players absent from every saved roster. Filter by position or NFL team, select a possible pickup and optional drop, and draft a research question. Ownership and catalog freshness are shown separately; claim eligibility still needs verification. The view uses cached data and submits no claims.
 - **Runs** shows main-agent and worker audits: tool inputs/results, interruptions, model usage, and final output. Select a run to inspect evidence; large records load in parts.
 - **Files** shows uploads, reports, and **League settings** (`LEAGUE.md`). Internal `.harness/` artifacts are hidden from this list; their files and direct artifact links remain available.
@@ -237,11 +237,15 @@ npm run fantasy:replay -- --agent --limit 3
 ```
 
 Each agent replay gets a clean chat workspace containing only `visible/` data.
+Only the `exec` tool is available, and its Docker sandbox has networking disabled.
 The runner freezes the recommendation, reveals the outcome to the grader, and
 stores legality, checkpoint validity, regret, latency, tool calls, and token
 usage in `.data/evals/fantasy-replays.sqlite`. Every row includes a fixture
 hash so regenerated datasets cannot be compared accidentally. The latest detailed report is
 also written to `.data/evals/latest-fantasy-replay.json`.
+The report includes `scoredAgentRuns`; `meanRegret` averages only attempts with a
+finite score and is `null` when none were scored. Failed attempts still count in
+`agentRuns` and remain visible in the detailed results.
 
 ### One-shot sealed shadow test
 

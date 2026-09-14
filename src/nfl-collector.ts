@@ -26,6 +26,7 @@ function date(value: unknown, label: string): string {
 }
 
 export function saveNflScoreboard(db: DatabaseSync, payload: any, sourceUrl: string, fetchedAt: string, season: number) {
+  fetchedAt = date(fetchedAt, "retrieval time");
   if (!payload?.leagues?.some((league: any) => league.id === "28" && league.slug === "nfl") || !Array.isArray(payload.events)) throw new Error("Invalid NFL scoreboard");
   const seen = new Set<string>();
   const events = payload.events.filter((event: any) => event.season?.year === season && [2, 3].includes(event.season?.type));
@@ -34,6 +35,8 @@ export function saveNflScoreboard(db: DatabaseSync, payload: any, sourceUrl: str
     for (const event of events) {
       if (typeof event.id !== "string" || !/^\d+$/.test(event.id) || seen.has(event.id)) throw new Error("Invalid or duplicate schedule game ID");
       seen.add(event.id);
+      const previous = db.prepare("SELECT * FROM nfl_schedule WHERE id=?").get(event.id);
+      if (previous && Date.parse(String(previous.fetched_at)) > Date.parse(fetchedAt)) continue;
       if (event.competitions?.length !== 1 || event.competitions[0].id !== event.id) throw new Error("Schedule competition mismatch");
       const competition = event.competitions[0];
       if (!Array.isArray(competition.competitors) || competition.competitors.length !== 2) throw new Error("Invalid schedule competitors");
@@ -50,8 +53,6 @@ export function saveNflScoreboard(db: DatabaseSync, payload: any, sourceUrl: str
       if (teams[0].id && teams[0].id === teams[1].id) throw new Error("Duplicate schedule teams");
       const status = competition.status;
       if (!["pre", "in", "post"].includes(status?.type?.state) || typeof status.type.completed !== "boolean" || !status.type.name) throw new Error("Invalid schedule status");
-      const previous = db.prepare("SELECT * FROM nfl_schedule WHERE id=?").get(event.id);
-      if (previous && String(previous.fetched_at) > fetchedAt) continue;
       if (previous?.completed && !status.type.completed) throw new Error("Completed schedule game regressed");
       const imported = db.prepare("SELECT home_team_id,away_team_id FROM games WHERE id=?").get(event.id);
       if (imported && (imported.home_team_id !== teams[0].id || imported.away_team_id !== teams[1].id)) throw new Error("Imported game teams changed");

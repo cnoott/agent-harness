@@ -1,11 +1,11 @@
 import OpenAI from "openai";
 import { GoogleGenAI, type Content, type Part, type GenerateContentResponseUsageMetadata } from "@google/genai";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { execute, SandboxExecutionError } from "./sandbox.js";
 import { closeBrowser, runBrowserTool, subscribeBrowserPreview } from "./browser.js";
-import { sportWorkspaces, workspacePath } from "./store.js";
+import { ensureWorkspaceDirectory, sportWorkspaces, workspacePath } from "./store.js";
 import { getModelConfig, type ModelSelection } from "./model.js";
 import type { AgentCheckpoint } from "./run-state.js";
 import type { ChatSession, ContextUsage, ToolEvent } from "./types.js";
@@ -74,11 +74,10 @@ async function compactToolResult(chatId: string, callId: string, result: unknown
   const serialized = JSON.stringify(result, null, 2);
   if (serialized.length <= maxToolResultCharacters) return result;
 
-  const logDirectory = path.join(workspacePath(chatId), ".harness", "tool-results");
-  await mkdir(logDirectory, { recursive: true });
+  const logDirectory = await ensureWorkspaceDirectory(chatId, ".harness/tool-results");
   const filename = `${chatId}-${callId.replaceAll(/[^a-zA-Z0-9_-]/g, "_")}.json`;
   const workspaceFile = path.join(logDirectory, filename);
-  await writeFile(workspaceFile, serialized);
+  await writeFile(workspaceFile, serialized, { flag: "wx", mode: 0o600 });
   return {
     truncated: true,
     originalCharacters: serialized.length,
@@ -245,6 +244,7 @@ async function refreshMemoryIfNeeded(client: OpenAI | GoogleGenAI, model: string
     } catch (error) {
       if (error instanceof AuditPersistenceError) throw error;
       record("model_end", { callId, phase: "memory", durationMs: Date.now() - started, status: "failed", error: String(error), usage: null });
+      control.controller?.signal.throwIfAborted();
       const delayMs = rateLimitDelayMs(error);
       if (!delayMs) {
         emit({ type: "status", data: { message: "Could not refresh durable memory; continuing with recent conversation." } });
@@ -312,8 +312,19 @@ export async function runAgent(session: ChatSession, userText: string, emit: Emi
     emit(event);
   };
   const metrics = () => Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, value - before[key as keyof RunStats]]));
+  const controller = control.controller ??= new AbortController();
+  let timedOut = false;
+  const deadline = started + (options.maxRuntimeMs ?? 30 * 60_000);
+  const cancelTimer = setInterval(() => {
+    if (Date.now() >= deadline) {
+      timedOut = true;
+      controller.abort(new Error("Run time limit reached; partial work and checkpoint were preserved."));
+    } else if (control.cancelled) controller.abort(new Error("Run stopped."));
+  }, 100);
   try {
+    if (control.cancelled) controller.abort(new Error("Run stopped."));
     const result = await executeAgent(session, userText, send, control, stats, options, record);
+    if (timedOut) controller.signal.throwIfAborted();
     let outcome = "completed";
     if (options.worker) {
       try { const value = JSON.parse(result).outcome; if (["completed", "partial", "blocked"].includes(value)) outcome = value; } catch { /* Non-deliverable output stays in the audit. */ }
@@ -321,9 +332,10 @@ export async function runAgent(session: ChatSession, userText: string, emit: Emi
     record("run_end", { status: control.cancelled || control.controller?.signal.aborted ? "cancelled" : outcome, durationMs: Date.now() - started, stats: metrics(), contextUsage: latestContext ?? null, answer: result });
     return result;
   } catch (error) {
+    if (timedOut) error = controller.signal.reason;
     record("run_end", { status: control.cancelled ? "cancelled" : "failed", durationMs: Date.now() - started, stats: metrics(), contextUsage: latestContext ?? null, error: String(error) });
     throw error;
-  }
+  } finally { clearInterval(cancelTimer); }
 }
 
 async function executeAgent(session: ChatSession, userText: string, emit: Emit, control: RunControl, stats: RunStats, options: RunOptions, record: AuditRecorder) {
@@ -342,14 +354,6 @@ async function executeAgent(session: ChatSession, userText: string, emit: Emit, 
   const checkpoint = async () => options.saveCheckpoint?.({ previousResponseId, input, geminiContents, steps, progress, pendingTools });
   if (options.checkpoint?.pendingTools.length) throw new Error("An interrupted tool may have executed. Reconcile its effects before starting another assignment.");
   const controller = control.controller ??= new AbortController();
-  const deadline = Date.now() + (options.maxRuntimeMs ?? 30 * 60_000);
-  let timedOut = false;
-  const cancelTimer = setInterval(() => {
-    if (Date.now() >= deadline) {
-      timedOut = true;
-      controller.abort(new Error("Run time limit reached."));
-    } else if (control.cancelled) controller.abort(new Error("Run stopped."));
-  }, 100);
   let closingBrowser: Promise<void> | undefined;
   const abortBrowser = () => { closingBrowser ??= closeBrowser(session.id).catch(() => {}); };
   controller.signal.addEventListener("abort", abortBrowser, { once: true });
@@ -528,10 +532,9 @@ async function executeAgent(session: ChatSession, userText: string, emit: Emit, 
           };
           let diagnosticFile: string | undefined;
           try {
-            const directory = path.join(workspacePath(session.id), ".harness", "model-diagnostics");
-            await mkdir(directory, { recursive: true });
+            const directory = await ensureWorkspaceDirectory(session.id, ".harness/model-diagnostics");
             const filename = `${randomUUID()}.json`;
-            await writeFile(path.join(directory, filename), JSON.stringify(diagnostic, null, 2));
+            await writeFile(path.join(directory, filename), JSON.stringify(diagnostic, null, 2), { flag: "wx", mode: 0o600 });
             diagnosticFile = `/workspace/.harness/model-diagnostics/${filename}`;
           } catch {
             emit({ type: "status", data: { message: "Could not save model diagnostics; metadata is included in this event.", diagnostic } });
@@ -621,7 +624,7 @@ async function executeAgent(session: ChatSession, userText: string, emit: Emit, 
           controller.signal.throwIfAborted();
           const { modelImage, ...toolResult } = result;
           const compactResult = ["sports_query", "history_read", "exec"].includes(call.name)
-            ? toolResult : await compactToolResult(session.id, call.call_id, Array.isArray(result) ? result : toolResult);
+            ? toolResult : await compactToolResult(session.id, auditCallId, Array.isArray(result) ? result : toolResult);
           if ((call.name === "browser_screenshot" || call.name === "browser_act") && modelImage) {
             screenshots.push({ callId: call.call_id, path: result.screenshot, ...modelImage });
           }
@@ -678,10 +681,8 @@ async function executeAgent(session: ChatSession, userText: string, emit: Emit, 
 
     return finalText || "Run stopped.";
   } finally {
-    clearInterval(cancelTimer);
     controller.signal.removeEventListener("abort", abortBrowser);
     unsubscribePreview();
     await closingBrowser;
-    if (timedOut) throw new Error("Run time limit reached; partial work and checkpoint were preserved.");
   }
 }

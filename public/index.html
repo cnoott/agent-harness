@@ -150,10 +150,11 @@
             <p class="workspace-copy">Scores refresh on request. Game status uses the saved NFL feed. Injury labels come from the daily player catalog; check current reports before kickoff.</p>
           </section>
           <section id="league-rosters" class="panel-view hidden" data-panel="teams" aria-label="League rosters">
-            <div class="rosters-heading"><h3 id="rosters-title">Your league</h3><button id="rosters-refresh" class="secondary" type="button">Ask agent to refresh</button></div>
+            <div class="rosters-heading"><h3 id="rosters-title">Your league</h3><button id="rosters-refresh" class="secondary" type="button">Refresh data</button></div>
             <p id="rosters-status" class="workspace-copy" role="status">Open an NFL chat to view teams.</p>
             <p id="rosters-error" class="file-error" role="alert"></p>
             <div id="rosters-content" hidden>
+              <p id="rosters-score-status" class="workspace-copy" role="status"></p>
               <div class="rosters-tabs" role="group" aria-label="Teams view">
                 <button type="button" class="secondary" data-roster-view="overview" aria-pressed="true" aria-controls="rosters-overview">League overview</button>
                 <button id="trade-builder-tab" type="button" class="secondary" data-roster-view="builder" aria-pressed="false" aria-controls="rosters-builder">Trade builder <span id="trade-count" hidden></span></button>

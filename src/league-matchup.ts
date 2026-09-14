@@ -26,7 +26,8 @@ export async function readLeagueMatchup(session: ChatSession, schedule: Schedule
   const enrich = (team: NonNullable<typeof matchup.myTeam>) => ({ ...team,
     starters: team.starters.map((player: any) => ({ ...player, game: gameFor(player.nflTeam) })),
     bench: team.bench.map((player: any) => ({ ...player, game: gameFor(player.nflTeam) })) });
-  return { ...data, teams: undefined, matchup: { ...matchup, currentWeek, myTeam: enrich(teams[0]!), opponent: matchup.opponent ? enrich(matchup.opponent) : null } };
+  return { ...data, fetchedAt: data.fantasy?.fetchedAt ?? data.fetchedAt, snapshotPath: data.fantasy?.snapshotPath ?? data.snapshotPath,
+    teams: undefined, matchup: { ...matchup, currentWeek, myTeam: enrich(teams[0]!), opponent: matchup.opponent ? enrich(matchup.opponent) : null } };
 }
 
 export async function refreshLeagueSnapshot(session: ChatSession, signal: AbortSignal) {

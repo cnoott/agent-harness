@@ -54,6 +54,18 @@ test("server persists uploads and waits for main-chat saves during shutdown", { 
     const created = await fetch(`${url}/api/chats`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: "nfl" }) });
     assert.equal(created.status, 200);
     const session = await created.json() as any;
+    for (const body of [null, {}, { text: 42 }, { text: [] }, { text: {} }, { text: "   " }]) {
+      const invalid = await fetch(`${url}/api/chats/${session.id}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+      });
+      assert.equal(invalid.status, 400, `Invalid message body: ${JSON.stringify(body)}`);
+    }
+    const liveReload = await fetch(`${url}/api/live-reload`);
+    const liveReader = liveReload.body!.getReader();
+    try {
+      const first = await liveReader.read();
+      assert.equal(new TextDecoder().decode(first.value), "event: ready\ndata: connected\n\n");
+    } finally { await liveReader.cancel(); }
     const sessionFile = path.join(directory, ".data/sessions", session.id, "session.json");
     const upload = new FormData();
     upload.append("file", new Blob(["local fixture 🏈"]), "fixture.txt");
@@ -81,7 +93,9 @@ test("server persists uploads and waits for main-chat saves during shutdown", { 
         const page = await browser.newPage();
         page.setDefaultTimeout(5000);
         await page.addInitScript(({ id }) => { localStorage.setItem("sandbox-harness-chat", id); localStorage.setItem("sandbox-harness-sport", "nfl"); }, { id: session.id });
+        const liveReloadRequest = page.waitForRequest(request => request.url().endsWith("/api/live-reload"));
         await page.goto(url);
+        await liveReloadRequest;
         await page.waitForSelector('.activity-event[data-call-id="first"]', { state: "attached" });
         for (let pass = 0; pass < 2; pass++) {
           await page.waitForSelector('.activity-event[data-call-id="first"]', { state: "attached" });
@@ -103,6 +117,65 @@ test("server persists uploads and waits for main-chat saves during shutdown", { 
         const saved = path.join(directory, "downloaded.txt");
         await download.saveAs(saved);
         assert.equal(await readFile(saved, "utf8"), "local fixture 🏈");
+        const rosterData = {
+          state: "ready", leagueId: "123456789012345678", leagueName: "Test league", season: "2026", myRosterId: 1,
+          fetchedAt: "2026-09-14T01:00:00Z", warnings: [], snapshotPath: "data/sleeper/latest.json",
+          fantasy: { season: "2026", week: 1, fetchedAt: "2026-09-14T02:00:00Z" },
+          teams: [
+            { id: 1, name: "My team", owner: "Me", wins: 0, losses: 0, points: 119.72, players: [
+              { id: "p1", name: "Starter One", position: "QB", nflTeam: "PHI", group: "Starter", slot: "QB", points: 24.72 },
+              { id: "p2", name: "Starter Zero", position: "RB", nflTeam: "DEN", group: "Starter", slot: "RB", points: 0 },
+              { id: "p3", name: "Defense", position: "DEF", nflTeam: "HOU", group: "Starter", slot: "DEF", points: -1 },
+              { id: "p4", name: "Bench Player", position: "WR", nflTeam: "GB", group: "Bench", slot: "", points: null },
+            ] },
+            { id: 2, name: "Other team", owner: "Them", wins: 0, losses: 0, points: 98.5, players: [
+              { id: "p5", name: "Other Starter", position: "QB", nflTeam: "CIN", group: "Starter", slot: "QB", points: 18.5 },
+            ] },
+          ],
+        };
+        await page.route("**/nfl/rosters", route => route.fulfill({ json: rosterData }));
+        await page.locator("#teams-toggle").click();
+        await page.locator(".league-team-card.is-mine").waitFor();
+        assert.match((await page.locator(".league-team-card.is-mine").textContent())!, /119\.72 pts/);
+        assert.match((await page.locator("#rosters-score-status").textContent())!, /Week 1 fantasy points/);
+        await page.locator(".league-team-card.is-mine").click();
+        assert.deepEqual(await page.locator("#roster-mine .roster-player-score").allTextContents(), ["24.72", "0.00", "-1.00", "—"]);
+        await page.locator('#roster-mine input[type="checkbox"]').first().check();
+        await page.locator('[data-roster-view="overview"]').click();
+        await page.locator('[data-roster-view="builder"]').click();
+        assert.equal(await page.locator('#roster-mine input[type="checkbox"]').first().isChecked(), true);
+        assert((await page.locator("#roster-mine .roster-player-list").boundingBox())!.height >= 150, "Scores must not collapse the roster list");
+        let refreshCalls = 0, messageCalls = 0, failRefresh = false;
+        page.on("request", request => { if (request.url().endsWith("/messages") && request.method() === "POST") messageCalls++; });
+        await page.route("**/nfl/matchup/refresh", async route => {
+          assert.equal(route.request().method(), "POST"); refreshCalls++;
+          if (failRefresh) return route.fulfill({ status: 503, json: { error: "Sleeper fixture unavailable" } });
+          rosterData.teams[0].points = 120.72;
+          await route.fulfill({ json: { state: "ready" } });
+        });
+        const draftBefore = await page.locator("#prompt").inputValue();
+        await page.locator("#rosters-refresh").click();
+        await page.waitForFunction(() => document.querySelector("#roster-mine .roster-fantasy-total")?.textContent === "120.72 pts");
+        assert.equal(refreshCalls, 1);
+        assert.equal(messageCalls, 0);
+        assert.equal(await page.locator("#prompt").inputValue(), draftBefore);
+        assert.equal(await page.locator('#roster-mine input[type="checkbox"]').first().isChecked(), true);
+        failRefresh = true;
+        await page.locator("#rosters-refresh").click();
+        await page.waitForFunction(() => document.querySelector("#rosters-error")?.textContent?.includes("Sleeper fixture unavailable"));
+        assert.match((await page.locator("#rosters-status").textContent())!, /previous roster snapshot/);
+        assert.equal(await page.locator("#roster-mine .roster-fantasy-total").textContent(), "120.72 pts");
+        assert.equal(messageCalls, 0);
+        failRefresh = false;
+        await page.locator("#rosters-refresh").click();
+        await page.waitForFunction(() => document.querySelector("#rosters-error")?.textContent === "");
+        if (process.env.HARNESS_ROSTER_QA_SCREENSHOT) {
+          await page.locator("#context-panel").evaluate(node => { node.scrollTop = 0; });
+          await page.screenshot({ path: `${process.env.HARNESS_ROSTER_QA_SCREENSHOT}-desktop.png`, fullPage: true });
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.screenshot({ path: `${process.env.HARNESS_ROSTER_QA_SCREENSHOT}-mobile.png`, fullPage: true });
+          assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Mobile view must not overflow horizontally");
+        }
         if (process.env.HARNESS_QA_SCREENSHOT) {
           await page.locator(".tool-activity").first().evaluate((node: any) => { node.open = true; });
           await page.locator(".activity-event").evaluateAll(nodes => nodes.forEach((node: any) => { node.open = true; }));

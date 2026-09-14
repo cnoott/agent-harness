@@ -46,7 +46,7 @@ let filesRequest = 0;
 let runEvents;
 
 function enableLiveReload() {
-  if (!location.hostname.match(/^(127\\.0\\.0\\.1|localhost)$/)) return;
+  if (!["127.0.0.1", "localhost", "[::1]"].includes(location.hostname)) return;
   let connectedOnce = false;
   const updates = new EventSource("/api/live-reload");
   updates.addEventListener("open", () => {

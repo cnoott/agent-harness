@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { launchPersistentContext } from "cloakbrowser";
-import { workspacePath } from "./store.js";
+import { ensureWorkspaceDirectory, workspacePath } from "./store.js";
 import { getModelConfig, type ModelSelection } from "./model.js";
 import { BrowserDownloads } from "./browser-downloads.js";
 
@@ -170,11 +170,10 @@ async function withDownloads<T extends Record<string, unknown>>(session: Browser
 }
 
 async function captureScreenshot(chatId: string, page: any) {
-  const screenshots = path.join(workspacePath(chatId), ".harness", "screenshots");
-  await mkdir(screenshots, { recursive: true });
+  const screenshots = await ensureWorkspaceDirectory(chatId, ".harness/screenshots");
   const filename = `${randomUUID()}.png`;
   const image = await page.screenshot({ type: "png", fullPage: false, scale: "css" });
-  await writeFile(path.join(screenshots, filename), image);
+  await writeFile(path.join(screenshots, filename), image, { flag: "wx", mode: 0o600 });
   return {
     url: page.url(),
     title: await page.title(),

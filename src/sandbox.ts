@@ -4,7 +4,7 @@ import { mkdir, open, realpath, type FileHandle } from "node:fs/promises";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
-import { workspacePath } from "./store.js";
+import { ensureWorkspaceDirectory, workspacePath } from "./store.js";
 import { writeJson } from "./run-state.js";
 
 type DockerResult = { stdout: string; stderr: string; exitCode: number };
@@ -147,10 +147,7 @@ export async function execute(chatId: string, command: string, options: SandboxO
   const root = await realpath(workspacePath(chatId));
   const id = randomUUID();
   const relative = `.harness/exec-output/${id}`;
-  for (const directory of [path.join(root, ".harness"), path.join(root, ".harness", "exec-output")]) {
-    await mkdir(directory, { recursive: true, mode: 0o700 });
-    if (await realpath(directory) !== directory) throw new Error("Command output directory must not be a symlink.");
-  }
+  await ensureWorkspaceDirectory(chatId, ".harness/exec-output");
   const directory = path.join(root, relative);
   await mkdir(directory, { mode: 0o700 });
   const files: Array<{ stream: "stdout" | "stderr"; handle: FileHandle; path: string; bytes: number; bytesSeen: number; hash: Hash; head: Buffer; tail: Buffer }> = [];

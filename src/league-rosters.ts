@@ -2,6 +2,8 @@ import { readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { workspacePath } from "./store.js";
 import type { ChatSession } from "./types.js";
+import { parseFantasyScores } from "./league-fantasy.js";
+import { readPlayerCatalog } from "./player-catalog.js";
 
 export async function readLeagueRosters(session: ChatSession, includeWaivers = false, includeMatchup = false) {
   if (session.workspaceId !== "nfl") throw new Error("League rosters require an NFL chat");
@@ -35,7 +37,7 @@ export async function readLeagueRosters(session: ChatSession, includeWaivers = f
   let playersFetchedAt: string | null = null;
   const warnings: string[] = [];
   try {
-    const cache = JSON.parse(await read("data/sleeper/players-cache.json", 40_000_000));
+    const cache = await readPlayerCatalog(root);
     if (!cache.players || Array.isArray(cache.players) || typeof cache.players !== "object") throw new Error("Invalid player catalog");
     catalog = cache.players;
     playersFetchedAt = typeof cache.fetched_at === "string" ? cache.fetched_at : null;
@@ -48,6 +50,10 @@ export async function readLeagueRosters(session: ChatSession, includeWaivers = f
     if (!roster || roster.league_id !== leagueId || !Number.isSafeInteger(roster.roster_id) || ids.has(roster.roster_id)
       || !Array.isArray(roster.players) || !Array.isArray(roster.starters)) throw new Error("Saved rosters contain missing or duplicate identities. Refresh with /roster.");
     ids.add(roster.roster_id);
+    const assignments = [roster.starters, roster.reserve ?? [], roster.taxi ?? []];
+    if (assignments.some(value => !Array.isArray(value))) throw new Error("Saved roster slots are invalid. Refresh with /roster.");
+    const assigned = assignments.flat().filter(id => id !== "0");
+    if (new Set(assigned).size !== assigned.length) throw new Error("Saved roster slots contain duplicate or overlapping players. Refresh with /roster.");
     const starters = new Set(roster.starters);
     const reserve = new Set(roster.reserve ?? []);
     const taxi = new Set(roster.taxi ?? []);
@@ -83,55 +89,75 @@ export async function readLeagueRosters(session: ChatSession, includeWaivers = f
       nflTeam: text(player.team, "—"), injuryStatus: text(player.injury_status, "Not reported"),
       searchOrder: Number.isFinite(player.search_rank) ? player.search_rank : null })) : undefined;
   const snapshotPath = typeof summary.snapshot === "string" && new RegExp(`^data/sleeper/${leagueId}/[0-9TZ.]+\\.json$`).test(summary.snapshot) ? summary.snapshot : relative;
+  const scoreSnapshots: ReturnType<typeof parseFantasyScores>[] = [];
+  const starterCount = Array.isArray(league.roster_positions) ? league.roster_positions.filter((slot: string) => !["BN", "IR"].includes(slot)).length : undefined;
+  if (!includeWaivers) {
+    const fantasyPath = `data/sleeper/${leagueId}/fantasy-latest.json`;
+    try {
+      scoreSnapshots.push(parseFantasyScores(JSON.parse(await read(fantasyPath, 8_000_000)), leagueId, league.season, ids, fantasyPath, starterCount));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") warnings.push("Saved /fantasy-update scores could not be loaded. Run /fantasy-update to refresh them.");
+    }
+    if (Array.isArray(snapshot.matchups) && summary.week != null) {
+      try {
+        if (summary.season != null && String(summary.season) !== String(league.season)) throw new Error("Matchup season mismatch");
+        const ranking = snapshot.matchups.map((entry: any) => {
+          if (!Array.isArray(entry?.players) || !Array.isArray(entry?.starters) || (entry.starters_points != null
+            && (!Array.isArray(entry.starters_points) || entry.starters_points.length !== entry.starters.length))) throw new Error("Matchup starter scores mismatch");
+          return { ...entry, player_ids: entry.players, starters: entry.starters.map((id: string, index: number) => ({ player_id: id, points: entry.starters_points?.[index] })) };
+        });
+        scoreSnapshots.push(parseFantasyScores({ league_id: leagueId, season: league.season, season_type: league.season_type ?? snapshot.nfl_state?.season_type, week: summary.week,
+          refreshed_at: summary.fetched_at, ranking }, leagueId, league.season, ids, snapshotPath, starterCount));
+      } catch { warnings.push("Saved roster matchup scores could not be loaded. Refresh with /roster."); }
+    }
+  }
+  const fantasy = scoreSnapshots.sort((a, b) => Date.parse(b.fetchedAt) - Date.parse(a.fetchedAt))[0] ?? null;
+  const weeklyTeams = new Map((fantasy?.teams ?? []).map(team => {
+    const sources = scoreSnapshots.filter(source => source.week === fantasy!.week && source.season === fantasy!.season)
+      .map(source => ({ source, team: source.teams.find(row => row.id === team.id)! }));
+    const playerScores = new Map<string, { points: number; fetchedAt: string }>();
+    for (const saved of sources) for (const [id, points] of Object.entries(saved.team.players)) {
+      if (points != null && !playerScores.has(id)) playerScores.set(id, { points, fetchedAt: saved.source.fetchedAt });
+    }
+    return [team.id, { ...team, playerScores, playerIds: team.playerIds ?? sources.find(saved => saved.team.playerIds)?.team.playerIds ?? Object.keys(team.players) }];
+  }));
   let matchup;
   if (includeMatchup) {
-    const entries = snapshot.matchups;
-    const week = summary.week;
-    if (!Number.isInteger(week) || week < 1 || week > 22 || !Array.isArray(entries)) {
+    if (!fantasy) {
       matchup = { state: "unavailable", message: "No weekly matchup is saved for this league. Refresh data to check the current week." };
     } else {
-      if (!Array.isArray(league.roster_positions) || String(snapshot.nfl_state?.season) !== String(league.season) || snapshot.nfl_state?.week !== week) {
-        throw new Error("Saved matchup week or lineup settings are inconsistent. Refresh data.");
-      }
-      if (entries.length !== teams.length || new Set(entries.map(entry => entry?.roster_id)).size !== teams.length
-        || entries.some(entry => !ids.has(entry?.roster_id))) throw new Error("Saved matchup teams are incomplete or duplicated. Refresh data.");
-      const weeklyTeam = (entry: any) => {
-        const roster = rosters.find(roster => roster.roster_id === entry.roster_id);
-        if (!Array.isArray(entry.players) || entry.players.some((id: unknown) => typeof id !== "string" || !id)
-          || new Set(entry.players).size !== entry.players.length || !Array.isArray(entry.starters)
-          || entry.starters.some((id: unknown) => id !== "0" && !entry.players.includes(id))
-          || new Set(entry.starters.filter((id: string) => id !== "0")).size !== entry.starters.filter((id: string) => id !== "0").length) {
-          throw new Error("Saved matchup lineups are incomplete or duplicated. Refresh data.");
-        }
-        if (entry.starters.length !== league.roster_positions.filter((slot: string) => !["BN", "IR"].includes(slot)).length
-          || (entry.starters_points != null && (!Array.isArray(entry.starters_points) || entry.starters_points.length !== entry.starters.length))
-          || (entry.matchup_id != null && !Number.isSafeInteger(entry.matchup_id))) throw new Error("Saved matchup slots or identity are invalid. Refresh data.");
-        const score = (value: unknown): number | null => {
-          if (value == null) return null;
-          if (typeof value !== "number" || !Number.isFinite(value)) throw new Error("Saved matchup scores are invalid. Refresh data.");
-          return value;
-        };
+      const weeklyTeam = (id: number) => {
+        const scores = weeklyTeams.get(id)!;
+        const team = teams.find(team => team.id === id)!;
+        const roster = rosters.find(roster => roster.roster_id === id);
         const player = (id: string, index: number) => {
           const info = catalog[id];
+          const saved = scores.playerScores.get(id);
           return { id, name: id === "0" ? "Empty slot" : text(info?.full_name, [info?.first_name, info?.last_name].filter(value => typeof value === "string").join(" ") || `Unknown player (${id})`),
             position: text(info?.position, "?"), slot: index < 0 ? roster?.reserve?.includes(id) ? "Reserve" : roster?.taxi?.includes(id) ? "Taxi" : "Bench" : text(league.roster_positions?.[index], "?"), nflTeam: text(info?.team, "—"),
             injuryStatus: info ? text(info.injury_status, "None listed") : "Unknown",
-            points: id === "0" ? null : (index < 0 ? null : score(entry.starters_points?.[index])) ?? score(entry.players_points?.[id]) };
+            points: id === "0" ? null : saved?.points ?? null, pointsFetchedAt: saved?.fetchedAt ?? null };
         };
-        const team = teams.find(team => team.id === entry.roster_id)!;
-        return { id: team.id, name: team.name, owner: team.owner, points: score(entry.custom_points) ?? score(entry.points),
-          reportedPoints: score(entry.points), customPoints: score(entry.custom_points),
-          starters: entry.starters.map(player), bench: entry.players.filter((id: string) => !entry.starters.includes(id)).map((id: string) => player(id, -1)) };
+        return { id: team.id, name: team.name, owner: team.owner, points: scores.points,
+          reportedPoints: scores.reportedPoints, customPoints: scores.customPoints,
+          starters: scores.starterIds.map(player), bench: scores.playerIds.filter(id => id !== "0" && !scores.starterIds.includes(id)).map(id => player(id, -1)) };
       };
-      const ownEntry = entries.find(entry => entry.roster_id === myRosterId)!;
-      const opponents = ownEntry.matchup_id == null ? [] : entries.filter(entry => entry.roster_id !== myRosterId && entry.matchup_id === ownEntry.matchup_id);
-      matchup = { state: "ready", week, season: String(league.season), seasonType: snapshot.nfl_state?.season_type,
-        matchupId: ownEntry.matchup_id ?? null, myTeam: weeklyTeam(ownEntry), opponent: opponents.length === 1 ? weeklyTeam(opponents[0]) : null,
-        message: opponents.length === 1 ? null : ownEntry.matchup_id == null ? "No head-to-head matchup assigned (possibly a bye)." : "A single opponent could not be resolved from the saved matchup.",
+      const ownEntry = weeklyTeams.get(myRosterId)!;
+      const opponents = ownEntry.matchupId == null ? [] : [...weeklyTeams.values()].filter(team => team.id !== myRosterId && team.matchupId === ownEntry.matchupId);
+      matchup = { state: "ready", week: fantasy.week, season: fantasy.season, seasonType: fantasy.seasonType,
+        matchupId: ownEntry.matchupId, myTeam: weeklyTeam(myRosterId), opponent: opponents.length === 1 ? weeklyTeam(opponents[0].id) : null,
+        message: opponents.length === 1 ? null : ownEntry.matchupId == null ? "No head-to-head matchup assigned (possibly a bye)." : "A single opponent could not be resolved from the saved matchup.",
         scoringSettings: league.scoring_settings ?? null };
     }
   }
   return { state: "ready", leagueId, leagueName: text(league.name, "Sleeper league"), season: league.season,
     myRosterId, fetchedAt: summary.fetched_at, playersFetchedAt, snapshotPath, warnings, availablePlayers, matchup,
-    teams: teams.sort((a, b) => a.id === myRosterId ? -1 : b.id === myRosterId ? 1 : a.name.localeCompare(b.name)) };
+    fantasy: fantasy ? { week: fantasy.week, season: fantasy.season, fetchedAt: fantasy.fetchedAt, snapshotPath: fantasy.snapshotPath } : null,
+    teams: teams.sort((a, b) => a.id === myRosterId ? -1 : b.id === myRosterId ? 1 : a.name.localeCompare(b.name)).map(team => {
+      const scores = weeklyTeams.get(team.id);
+      return { ...team, points: scores?.points ?? null, players: team.players.map((player: any) => {
+        const saved = scores?.playerScores.get(player.id);
+        return { ...player, points: saved?.points ?? null, pointsFetchedAt: saved?.fetchedAt ?? null };
+      }) };
+    }) };
 }

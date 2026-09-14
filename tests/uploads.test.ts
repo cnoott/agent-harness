@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const directory = await mkdtemp(path.join(tmpdir(), "harness-uploads-"));
 process.chdir(directory);
 after(async () => { process.chdir(tmpdir()); await rm(directory, { recursive: true, force: true }); });
-const { createSession, workspacePath, saveUpload } = await import("../src/store.js");
+const { createSession, workspacePath, saveUpload, ensureWorkspaceDirectory } = await import("../src/store.js");
 
 test("uploads publish complete bytes and preserve an existing file on failure", async () => {
   const session = await createSession("nfl");
@@ -48,4 +48,17 @@ test("all durable runtime locations remain Git ignored and untracked", () => {
   const ignored = execFileSync("git", ["check-ignore", "--stdin"], { cwd: repository, input: files.join("\n") + "\n", encoding: "utf8" });
   assert.deepEqual(ignored.trim().split("\n"), files);
   assert.equal(execFileSync("git", ["ls-files", "--", ".data", ".env"], { cwd: repository, encoding: "utf8" }), "");
+});
+
+test("host artifact directories reject traversal and intermediate symlinks", async () => {
+  const session = await createSession();
+  const root = workspacePath(session.id);
+  const target = await ensureWorkspaceDirectory(session.id, ".harness/screenshots");
+  assert.equal(target, await ensureWorkspaceDirectory(session.id, ".harness/screenshots"));
+  for (const relative of ["../outside", ".", directory]) {
+    await assert.rejects(ensureWorkspaceDirectory(session.id, relative), /inside the workspace/);
+  }
+  await symlink(directory, path.join(root, ".harness/linked"));
+  await assert.rejects(ensureWorkspaceDirectory(session.id, ".harness/linked/new-directory"), /symlink/);
+  assert(!(await readdir(directory)).includes("new-directory"));
 });

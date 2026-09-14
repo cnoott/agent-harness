@@ -103,6 +103,21 @@ export function resolveWorkspaceFile(chatId: string, requestedPath: string) {
   return resolved;
 }
 
+export async function ensureWorkspaceDirectory(chatId: string, relative: string) {
+  const root = await realpath(workspacePath(chatId));
+  const destination = path.resolve(root, relative);
+  if (!destination.startsWith(`${root}${path.sep}`)) throw new Error("Directory must stay inside the workspace");
+  let directory = root;
+  for (const part of path.relative(root, destination).split(path.sep)) {
+    directory = path.join(directory, part);
+    try { await mkdir(directory, { mode: 0o700 }); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
+    const details = await lstat(directory);
+    if (!details.isDirectory() || details.isSymbolicLink()) throw new Error("Workspace artifact directory must not be a symlink or a file");
+  }
+  return destination;
+}
+
 export async function saveUpload(chatId: string, requestedPath: string, source: Readable & { truncated?: boolean }, signal?: AbortSignal) {
   const root = await realpath(workspacePath(chatId));
   const destination = path.resolve(root, requestedPath);

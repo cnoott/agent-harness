@@ -202,8 +202,8 @@ if (process.env.NODE_ENV !== "production") {
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     });
-    reply.raw.write("event: ready\\ndata: connected\\n\\n");
-    const heartbeat = setInterval(() => reply.raw.write(": keepalive\\n\\n"), 15_000);
+    reply.raw.write("event: ready\ndata: connected\n\n");
+    const heartbeat = setInterval(() => reply.raw.write(": keepalive\n\n"), 15_000);
     request.raw.on("close", () => clearInterval(heartbeat));
   });
 }
@@ -518,10 +518,10 @@ app.post("/api/chats/:chatId/stop", async (request) => {
 
 app.post("/api/chats/:chatId/messages", async (request, reply) => {
   const chatId = (request.params as any).chatId;
-  const { text } = request.body as { text?: string };
+  const text = (request.body as { text?: unknown } | null)?.text;
   const session = await getSession(chatId);
   if (!session) return reply.code(404).send({ error: "Chat not found" });
-  if (!text?.trim()) return reply.code(400).send({ error: "Message text is required" });
+  if (typeof text !== "string" || !text.trim()) return reply.code(400).send({ error: "Message text is required" });
   if (changingChats.has(chatId)) return reply.code(409).send({ error: "This chat is being updated." });
   if (leagueRefresh?.chatId === chatId) return reply.code(409).send({ error: "Wait for the league refresh to finish before starting research." });
   if (session.archivedAt) return reply.code(409).send({ error: "Restore this archived chat before sending a message." });

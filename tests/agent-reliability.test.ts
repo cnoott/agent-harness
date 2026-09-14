@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createServer } from "node:http";
@@ -12,7 +12,7 @@ process.chdir(directory);
 process.env.OPENAI_API_KEY = "self-test-key";
 after(async () => { process.chdir(tmpdir()); await rm(directory, { recursive: true, force: true }); });
 const { runAgent, cancelRun } = await import("../src/agent.js");
-const { createSession } = await import("../src/store.js");
+const { createSession, workspacePath } = await import("../src/store.js");
 const { withHistory } = await import("../src/history.js");
 const { SandboxExecutionError } = await import("../src/sandbox.js");
 
@@ -69,6 +69,18 @@ test("agent correlates failures, malformed arguments, history reads, and restric
     assert(!("preview" in structured));
 
     requests = [];
+    calls = [{ type: "function_call", name: "example", call_id: "escaped-result", arguments: "{}" }];
+    const escaped = await createSession();
+    const outside = await mkdtemp(path.join(directory, "outside-"));
+    await symlink(outside, path.join(workspacePath(escaped.id), ".harness"));
+    await runAgent(escaped, "save large result", () => {}, { cancelled: false }, undefined, {
+      model: { provider: "openai", model: "mock" }, extraTools: [{ type: "function", name: "example", parameters: { type: "object", properties: {} } }],
+      toolHandler: async () => ({ text: "evidence".repeat(2000) }),
+    });
+    assert.match(JSON.parse(requests[1].input[0].output).error, /symlink/);
+    assert.deepEqual(await readdir(outside), []);
+
+    requests = [];
     calls = [{ type: "function_call", name: "example", call_id: "cancel-1", arguments: "{}" }];
     const control = { cancelled: false, controller: new AbortController() };
     const interruptedEvents: ToolEvent[] = [];
@@ -90,6 +102,38 @@ test("agent correlates failures, malformed arguments, history reads, and restric
     }), /confirm termination/);
     assert.equal(unknownEvents.find(e => e.type === "tool_end")?.status, "interrupted");
     assert.equal(withHistory(session.id, db => db.prepare("SELECT count(*) AS n FROM events WHERE run_id='unknown-stop' AND kind='tool_end'").get()!.n), 0);
+  } finally {
+    delete process.env.OPENAI_BASE_URL;
+    server.closeAllConnections();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
+});
+
+test("the run deadline includes durable memory refresh", async () => {
+  let requests = 0;
+  const server = createServer(async (req, res) => {
+    let raw = "";
+    for await (const chunk of req) raw += chunk;
+    requests++;
+    const body = JSON.parse(raw);
+    if (!body.stream) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ id: "memory", output: [{ type: "message", content: [{ type: "output_text", text: "Saved memory" }] }] }));
+    } else {
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      res.end(`data: ${JSON.stringify({ type: "response.completed", response: { id: "done", output: [], output_text: "done" } })}\n\ndata: [DONE]\n\n`);
+    }
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  process.env.OPENAI_BASE_URL = `http://127.0.0.1:${(server.address() as any).port}`;
+  try {
+    const session = await createSession("nfl");
+    session.messages = Array.from({ length: 10 }, (_, index) => ({ id: `message-${index}`, role: "user", text: "Older context", createdAt: session.createdAt }));
+    await assert.rejects(runAgent(session, "continue", () => {}, { cancelled: false }, undefined, {
+      model: { provider: "openai", model: "mock" }, maxRuntimeMs: 50,
+    }), /Run time limit reached/);
+    assert.equal(requests, 1, "An expired run must not start the main model request");
   } finally {
     delete process.env.OPENAI_BASE_URL;
     server.closeAllConnections();

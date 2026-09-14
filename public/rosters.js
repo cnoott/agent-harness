@@ -13,6 +13,7 @@ let chatId = null;
 let data = null;
 let request = null;
 let busy = false;
+let refreshRequest = null;
 let selected = new Set();
 
 function element(tag, className, text) {
@@ -28,6 +29,7 @@ function players(team) { return team?.players.filter(player => selected.has(`${t
 function record(team) {
   return Number.isFinite(team.wins) && Number.isFinite(team.losses) ? `${team.wins}–${team.losses} W–L` : "Record unavailable";
 }
+function points(value) { return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2) : "—"; }
 
 function showView(view) {
   document.querySelector("#rosters-overview").hidden = view !== "overview";
@@ -86,6 +88,8 @@ function renderTeam(team, target, yours) {
   const head = element("div", "roster-team-heading", "");
   head.append(element("small", "roster-team-label", yours ? "YOUR TEAM · SEND" : "THEIR TEAM · RECEIVE"), element("h3", "", team.name));
   head.append(element("p", "roster-owner", team.owner), element("p", "", `${record(team)} · ${team.players.length} players`));
+  head.append(element("strong", "roster-fantasy-total", `${points(team.points)} pts`));
+  head.append(element("p", "", data.fantasy ? `Week ${data.fantasy.week} · Sleeper` : "Fantasy points unavailable"));
   head.title = `${team.name} · ${team.owner}`;
   target.append(head);
   const list = element("div", "roster-player-list", "");
@@ -114,7 +118,10 @@ function renderTeam(team, target, yours) {
       const badge = element("span", "roster-position", player.position);
       const text = element("span", "roster-player-name", "");
       text.append(element("strong", "", player.name), element("small", "", `${player.position} · ${player.nflTeam}${player.slot && player.slot !== player.position ? ` · ${player.slot}` : ""}`));
-      row.append(badge, text, box);
+      const score = element("span", "roster-player-score", points(player.points));
+      score.setAttribute("aria-label", player.points == null ? "Fantasy points unavailable" : `${points(player.points)} fantasy points`);
+      score.title = player.points == null ? "No player score in the saved week" : `Sleeper · Week ${data.fantasy.week} · Saved ${new Date(player.pointsFetchedAt || data.fantasy.fetchedAt).toLocaleString()}`;
+      row.append(badge, text, score, box);
       list.append(row);
     }
   }
@@ -159,6 +166,8 @@ function searchLeague() {
     card.append(element("span", "league-team-label", yours ? "YOUR TEAM" : team.owner));
     card.append(element("strong", "league-team-name", team.name));
     card.append(element("span", "league-team-record", record(team)));
+    card.append(element("strong", "roster-fantasy-total", `${points(team.points)} pts`));
+    card.append(element("span", "league-team-depth", data.fantasy ? `Week ${data.fantasy.week} · Sleeper` : "Fantasy points unavailable"));
     const positions = ["QB", "RB", "WR", "TE"].map(value => `${team.players.filter(player => player.position === value).length} ${value}`).join(" · ");
     card.append(element("span", "league-team-depth", team.players.some(player => player.position === "?") ? "Position counts unavailable" : positions));
     card.append(element("span", "league-team-action", `${team.players.length} players · ${yours ? "View roster" : "Build trade"} →`));
@@ -199,6 +208,9 @@ export async function refreshRosterView() {
     selected = new Set([...selected].filter(key => valid.has(key)));
     title.textContent = `${data.leagueName} · ${data.season ? `${data.season} ` : ""}NFL`;
     status.textContent = `Roster snapshot: ${new Date(data.fetchedAt).toLocaleString()} · Refresh on request`;
+    document.querySelector("#rosters-score-status").textContent = data.fantasy
+      ? `${data.fantasy.season} · Week ${data.fantasy.week} fantasy points · Sleeper snapshot: ${new Date(data.fantasy.fetchedAt).toLocaleString()} · — means no saved score.`
+      : "No saved fantasy points. Refresh with /fantasy-update or /roster.";
     error.textContent = data.warnings.join(" · ");
     opponent.replaceChildren();
     for (const team of data.teams.filter(team => team.id !== data.myRosterId)) {
@@ -229,6 +241,7 @@ export async function refreshRosterView() {
 
 export function setRosterChat(id, workspaceId) {
   request?.abort();
+  refreshRequest?.abort(); refreshRequest = null;
   chatId = workspaceId === "nfl" ? id : null;
   data = null; selected.clear(); search.value = ""; results.replaceChildren(); opponent.replaceChildren(); position.replaceChildren(element("option", "", "All positions")); position.firstElementChild.value = ""; content.hidden = true;
   showView("overview");
@@ -238,17 +251,37 @@ export function setRosterChat(id, workspaceId) {
   error.textContent = ""; title.textContent = workspaceId === "nba" ? "NBA · ESPN Fantasy teams" : "NFL · Sleeper teams";
   status.textContent = workspaceId === "nba" ? "Your ESPN Fantasy NBA league is not connected yet. Add its league URL or ID in League settings." : chatId ? "Open Teams to browse saved rosters." : "Start an NFL chat to view your league teams.";
   refresh.disabled = !chatId || busy;
+  refresh.textContent = "Refresh data";
 }
 export function setRosterBusy(value) {
   busy = value;
-  refresh.disabled = busy || !chatId;
+  refresh.disabled = busy || !chatId || Boolean(refreshRequest);
   updateSelection();
 }
 function draft(text) {
   if (busy || !chatId) return;
   document.dispatchEvent(new CustomEvent("roster-chat-draft", { detail: { chatId, text } }));
 }
-refresh.addEventListener("click", () => draft("/roster"));
+refresh.addEventListener("click", async () => {
+  if (!chatId || busy || refreshRequest) return;
+  const target = chatId;
+  const controller = new AbortController(); refreshRequest = controller;
+  request?.abort(); refresh.disabled = true; refresh.textContent = "Refreshing…";
+  status.textContent = "Fetching league data from Sleeper…"; error.textContent = "";
+  try {
+    const response = await fetch(`/api/chats/${target}/nfl/matchup/refresh`, { method: "POST", signal: controller.signal });
+    const result = await response.json();
+    if (controller.signal.aborted || refreshRequest !== controller) return;
+    if (!response.ok) throw new Error(result.error || "Could not refresh league data.");
+    document.dispatchEvent(new CustomEvent("league-data-refreshed", { detail: { chatId: target } }));
+  } catch (failure) {
+    if (controller.signal.aborted || refreshRequest !== controller) return;
+    error.textContent = failure.message || "Could not refresh league data.";
+    status.textContent = data ? `Refresh failed. Showing the previous roster snapshot from ${new Date(data.fetchedAt).toLocaleString()}.` : "League refresh failed.";
+  } finally {
+    if (refreshRequest === controller) { refreshRequest = null; refresh.disabled = !chatId || busy; refresh.textContent = "Refresh data"; }
+  }
+});
 discuss.addEventListener("click", () => {
   if (!data || !other()) return;
   const sent = players(mine()), received = players(other());

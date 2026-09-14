@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { workspacePath } from "./store.js";
 import type { ChatSession } from "./types.js";
+import { builtinWorkflows } from "./builtin-workflows.js";
 
 type Command = { name: string; description: string; instructions: string; source: string };
 const templates = fileURLToPath(new URL("../workspace-templates/", import.meta.url));
@@ -30,7 +31,10 @@ export async function listCommands(session: ChatSession) {
   if (session.workspaceId === "nfl") {
     await seed("scripts/roster.py", "roster.py");
     await seed("commands/roster.json", "roster.json");
+    await seed("scripts/fantasy_update.py", "fantasy_update.py");
+    await seed("commands/fantasy-update.json", "fantasy-update.json");
   }
+  const builtins = session.workspaceId === "nfl" ? await builtinWorkflows(session.id) : null;
   const commands = [help];
   const warnings: string[] = [];
   const files = (await readdir(directory)).filter(name => name.endsWith(".json")).sort();
@@ -42,10 +46,21 @@ export async function listCommands(session: ChatSession) {
       const target = await inside(root, path.join(directory, file));
       const info = await stat(target);
       if (!info.isFile() || info.size > 16_384) throw new Error("Expected a JSON file under 16 KB");
-      const value = JSON.parse(await readFile(target, "utf8"));
+      const raw = await readFile(target, "utf8");
+      let value = JSON.parse(raw);
       if (typeof value.description !== "string" || !value.description.trim() || value.description.length > 240
         || typeof value.instructions !== "string" || !value.instructions.trim() || value.instructions.length > 12_000) throw new Error("Expected description (1–240 characters) and instructions (1–12000 characters)");
-      commands.push({ name, description: value.description.trim(), instructions: value.instructions.trim(), source: `commands/${file}` });
+      let source = `commands/${file}`;
+      if (builtins && ["roster", "fantasy-update"].includes(name) && await builtins.matches(file, raw)) {
+        const script = name === "roster" ? "roster.py" : "fantasy_update.py";
+        const savedScript = await readFile(await inside(root, path.join(root, "scripts", script)), "utf8");
+        if (await builtins.matches(script, savedScript)) {
+          value = JSON.parse(builtins.files[file]);
+          value.instructions = `Run python /workspace/${builtins.relative}/${script} through exec from /workspace. This is the current bundled workflow.\n${value.instructions.replaceAll("/workspace/scripts/roster.py", `/workspace/${builtins.relative}/roster.py`)}`;
+          source = `${builtins.relative}/${file}`;
+        }
+      }
+      commands.push({ name, description: value.description.trim(), instructions: value.instructions.trim(), source });
     } catch (error) { warnings.push(`${file}: ${error instanceof Error ? error.message : String(error)}`); }
   }
   return { commands, warnings };

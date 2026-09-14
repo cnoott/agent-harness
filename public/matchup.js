@@ -20,6 +20,7 @@ function renderPlayer(player) {
   const row = element("div", "matchup-player", "");
   const heading = element("div", "matchup-player-heading", "");
   heading.append(element("strong", "", player.name), element("strong", "matchup-points", points(player.points)));
+  heading.title = player.pointsFetchedAt ? `Sleeper score saved ${time(player.pointsFetchedAt)}` : "No saved player score";
   row.append(heading, element("small", "", `${player.slot !== player.position ? `${player.slot} · ` : ""}${player.position} · ${player.nflTeam}`));
   if (player.injuryStatus !== "None listed" && player.id !== "0") row.append(element("span", "matchup-injury", player.injuryStatus));
   const game = player.game;

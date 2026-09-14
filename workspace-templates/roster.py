@@ -40,6 +40,7 @@ def main():
     parser = argparse.ArgumentParser(description="Refresh Sleeper NFL league and rosters. Reads LEAGUE.md; saves data/sleeper/<league-id>/<timestamp>.json and latest.json. No login or model calls.")
     parser.add_argument("--league-id", help="Confirmed Sleeper league ID, otherwise read LEAGUE.md")
     parser.add_argument("--roster-id", type=int, help="Confirmed roster ID, otherwise read LEAGUE.md")
+    parser.add_argument("--week", type=int, choices=range(1, 23), help="Explicit saved matchup week (1–22)")
     args = parser.parse_args()
     context = Path("LEAGUE.md").read_text() if Path("LEAGUE.md").exists() else ""
     league_match = re.search(r"League name / ID:.*?\b(\d{10,})\b", context)
@@ -71,10 +72,15 @@ def main():
         if owned.intersection(players):
             raise ValueError("A player appears on more than one roster")
         owned.update(players)
+        assigned = set()
         for field in ["starters", "reserve", "taxi"]:
             values = roster.get(field) or []
             if not isinstance(values, list) or any(p != "0" and p not in players for p in values):
                 raise ValueError(f"Invalid {field} players for roster {rid}")
+            filled = [p for p in values if p != "0"]
+            if len(filled) != len(set(filled)) or assigned.intersection(filled):
+                raise ValueError(f"Duplicate or overlapping roster slots for roster {rid}")
+            assigned.update(filled)
         if not isinstance(roster.get("starters"), list):
             raise ValueError("Starter slots are missing")
     mine = next((r for r in rosters if r["roster_id"] == roster_id), None)
@@ -88,7 +94,7 @@ def main():
     state = fetch("/state/nfl")
     if not isinstance(state, dict):
         raise ValueError("NFL state is unavailable")
-    week = state.get("week") if str(state.get("season")) == str(league.get("season")) and state.get("season_type") in ["regular", "post"] else None
+    week = args.week if args.week is not None else state.get("week") if str(state.get("season")) == str(league.get("season")) and state.get("season_type") in ["regular", "post"] else None
     matchups = None
     if isinstance(week, int) and 1 <= week <= 22:
         matchups = fetch(f"/league/{league_id}/matchups/{week}")
@@ -112,6 +118,8 @@ def main():
             if matchup.get("players_points") is not None:
                 if not isinstance(matchup["players_points"], dict):
                     raise ValueError("Player scores are invalid")
+                if any(pid not in players for pid in matchup["players_points"]):
+                    raise ValueError("Player scores do not match matchup players")
                 values.extend(matchup["players_points"].values())
             if any(value is not None and (type(value) not in [int, float] or not math.isfinite(value)) for value in values):
                 raise ValueError("Matchup scores are invalid")
@@ -163,6 +171,7 @@ def main():
     save_json(snapshot, payload)
     save_json(directory / "latest.json", payload)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    return payload
 
 
 if __name__ == "__main__":
