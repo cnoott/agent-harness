@@ -8,6 +8,8 @@ export type ChatMessage = {
   activity?: ToolEvent[];
   contextUsage?: ContextUsage;
   model?: ModelSelection;
+  gatherModel?: ModelSelection;
+  planModel?: ModelSelection;
 };
 
 export type ChatMemory = {
@@ -29,7 +31,17 @@ export type TaskState = {
   pending: string[];
 };
 
+export type ResearchConstraint = {
+  id: string; text: string; sourceMessageId: string; quote: string; status: "active" | "unresolved" | "superseded";
+};
+export type ResearchState = {
+  constraints: ResearchConstraint[];
+  supersededDecisions: Array<{ decision: string; sourceMessageId: string; correctionMessageId: string; quote: string }>;
+  processedThroughMessageId?: string;
+};
+
 export type ChatSession = {
+  researchState?: ResearchState;
   id: string;
   archivedAt?: string;
   workspaceId?: string;

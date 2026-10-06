@@ -1,3 +1,4 @@
+import { setAssessmentChat, setAssessmentBusy, refreshAssessmentsView } from "/assessments.js";
 import { setPanelWorkspace, setBrowserAvailable, resetBrowserActivity, showBrowserActivity, closePanel } from "/panels.js";
 import { setRosterChat, setRosterBusy, refreshRosterView } from "/rosters.js";
 import { setMatchupChat, setMatchupBusy, refreshMatchupView } from "/matchup.js";
@@ -44,6 +45,7 @@ let browserControlEnabled = false;
 let scrollTimer;
 let filesRequest = 0;
 let runEvents;
+let assessmentDraft = null;
 
 function enableLiveReload() {
   if (!["127.0.0.1", "localhost", "[::1]"].includes(location.hostname)) return;
@@ -324,6 +326,8 @@ async function createChat(workspaceId) {
     setRosterChat(state.chatId, state.workspaceId);
     setMatchupChat(state.chatId, state.workspaceId);
     setWaiverChat(state.chatId, state.workspaceId);
+    setAssessmentChat(state.chatId, state.workspaceId);
+    assessmentDraft = null;
     setPanelWorkspace(state.workspaceId);
     localStorage.setItem("sandbox-harness-chat", chat.id);
     localStorage.setItem("sandbox-harness-sport", state.workspaceId);
@@ -646,6 +650,8 @@ async function loadChatData() {
   setRosterChat(null, "");
   setMatchupChat(null, "");
   setWaiverChat(null, "");
+  setAssessmentChat(null, "");
+  assessmentDraft = null;
   setPanelWorkspace("");
   $("#files").replaceChildren();
   $("#files-error").textContent = "";
@@ -655,7 +661,7 @@ async function loadChatData() {
     if (!["nfl", "nba"].includes(state.workspaceId)) { void refreshHistory(); return chooseWorkspace(); }
     messages.replaceChildren(); state.currentAssistant = null;
     $("#chat-id").textContent = ""; $("#workspace-name").textContent = state.workspaceId.toUpperCase();
-    setNflGamesChat(null, state.workspaceId); setRosterChat(null, state.workspaceId); setWaiverChat(null, state.workspaceId); setPanelWorkspace(state.workspaceId);
+    setNflGamesChat(null, state.workspaceId); setRosterChat(null, state.workspaceId); setWaiverChat(null, state.workspaceId); setAssessmentChat(null, state.workspaceId); assessmentDraft = null; setPanelWorkspace(state.workspaceId);
     setMatchupChat(null, state.workspaceId);
     setRunning(false);
     void refreshHistory();
@@ -681,6 +687,8 @@ async function loadChatData() {
   setRosterChat(state.chatId, state.workspaceId);
   setMatchupChat(state.chatId, state.workspaceId);
   setWaiverChat(state.chatId, state.workspaceId);
+  setAssessmentChat(state.chatId, state.workspaceId);
+  assessmentDraft = null;
   setPanelWorkspace(state.workspaceId);
   void refreshHistory();
   $("#chat-id").textContent = chat.id.slice(0, 8);
@@ -871,6 +879,7 @@ function updateComposer() {
   setRosterBusy(state.running || voiceBusy || readOnly);
   setMatchupBusy(state.running || voiceBusy || readOnly);
   setWaiverBusy(state.running || voiceBusy || readOnly);
+  setAssessmentBusy(state.running || voiceBusy || readOnly);
   document.querySelectorAll("[data-sport]").forEach(button => { button.disabled = state.running || voiceBusy || state.creatingChat || state.switchingSport || state.changingChat || state.changingModel || state.loadingChat; });
   send.disabled = state.running || voiceBusy || readOnly || !prompt.value.trim();
   send.classList.toggle("hidden", state.running);
@@ -1035,9 +1044,10 @@ async function run(text) {
     const response = await fetch(`/api/chats/${state.chatId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, ...(assessmentDraft?.chatId === state.chatId && text.includes(assessmentDraft.text) ? { assessmentResearch: assessmentDraft.assignment } : {}) }),
     });
     if (!response.ok) throw new Error((await response.json()).error || "Could not start run");
+    assessmentDraft = null;
     void refreshHistory();
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -1066,6 +1076,7 @@ async function run(text) {
       finishActivity(state.currentAssistant);
       setRunning(false);
       await refreshFiles();
+      void refreshAssessmentsView();
     }
   }
 }
@@ -1106,6 +1117,7 @@ document.addEventListener("chat-model-changed", event => {
 
 document.addEventListener("roster-chat-draft", event => {
   if (event.detail.chatId !== state.chatId || state.running || state.voiceMode !== "idle" || state.archivedAt || state.changingChat || state.changingModel || state.loadingChat) return;
+  assessmentDraft = event.detail.assessmentResearch ? { chatId: state.chatId, text: event.detail.text, assignment: event.detail.assessmentResearch } : null;
   prompt.value = `${prompt.value.trim() ? `${prompt.value.trim()}\n\n` : ""}${event.detail.text}`;
   prompt.dispatchEvent(new Event("input", { bubbles: true }));
   closePanel();

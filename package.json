@@ -16,7 +16,10 @@
     "fantasy:shadow:predict": "tsx scripts/predict-fantasy-shadow.ts",
     "fantasy:shadow:grade": "tsx scripts/grade-fantasy-shadow.ts",
     "sandbox:build": "docker build -t sandbox-harness:local -f sandbox/Dockerfile sandbox",
-    "nfl:backup": "tsx scripts/backup-nfl.ts"
+    "nfl:backup": "tsx scripts/backup-nfl.ts",
+    "research:benchmark": "tsx scripts/benchmark-assessment-research.ts",
+    "research:grade": "tsx scripts/grade-assessment-research.ts",
+    "research:inspect": "tsx scripts/inspect-assessment-research.ts"
   },
   "dependencies": {
     "@browserbasehq/stagehand": "^3.0.0",

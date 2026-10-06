@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "label": "synthetic controlled evidence, not NFL facts",
+  "target": {
+    "id": "receiver",
+    "name": "Alex Sample",
+    "team": "BUF",
+    "position": "WR"
+  },
+  "teammate": {
+    "id": "quarterback",
+    "name": "Jordan Example",
+    "team": "BUF",
+    "position": "QB"
+  },
+  "id": "practice",
+  "category": "practice",
+  "status": "supported",
+  "sources": [
+    {
+      "id": "source-1",
+      "url": "https://www.buffalobills.com/practice",
+      "text": "Alex Sample was limited in Friday practice.",
+      "author": "Buffalo Bills",
+      "basis": "original",
+      "stage": "preferred"
+    }
+  ],
+  "expected": [
+    {
+      "subject_id": "receiver",
+      "kind": "practice",
+      "value": "limited",
+      "classification": "official_statement",
+      "excerpt": "Alex Sample was limited in Friday practice.",
+      "source_id": "source-1"
+    }
+  ],
+  "rationale": "Other checklist categories must remain unknown or not checked; silence is not evidence."
+}

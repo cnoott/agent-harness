@@ -43,7 +43,7 @@ if (args[0] === 'inspect') {
   else if (config.inspectError) fail(config.inspectError);
   else {
     const value = read();
-    if (!value) fail('Error: No such object: ' + name);
+    if (!value) fail((config.missingPrefix || 'Error: No such object: ') + name);
     process.stdout.write(JSON.stringify(value));
   }
 } else if (args[0] === 'run') {
@@ -135,6 +135,14 @@ await test("sandbox regression", async suite => {
       await ensureSandbox(session.id);
       assert.equal((await calls()).filter(call => call[0] === "start").length, 1);
       assert.equal(JSON.parse(await readFile(stateFile, "utf8")).state, "running");
+    });
+    await t.test("creates missing sandboxes with lowercase Docker errors", async () => {
+      for (const missingPrefix of ["error: no such object: ", "error: no such container: "]) {
+        await configure({ missingPrefix });
+        const session = await createSession();
+        await ensureSandbox(session.id);
+        assert.equal((await calls()).filter(call => call[0] === "run").length, 1);
+      }
     });
     await t.test("rejects workspace, input, and network mismatches without removing containers", async () => {
       await configure();

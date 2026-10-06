@@ -37,7 +37,7 @@ NFL collection makes no model calls and continues while the server runs. Chats s
 - One Docker sandbox per chat, with the selected workspace mounted at `/workspace`. Chat history and browser profiles remain per chat.
 - A small tool set: `exec`, `browser_open`, `browser_observe`, `browser_act`, `browser_extract`, and `browser_screenshot`.
 - NFL chats and NFL workers additionally have `sports_query` for read-only SQL over imported games, subject to run-specific tool restrictions.
-- A direct OpenAI Responses API or Google Gemini API tool loop with streamed text and visible tool activity.
+- A direct OpenAI Responses API or Google Gemini API tool loop with streamed text and visible tool activity. OpenAI research turns plan with `gpt-5.6-sol`, drive with `gpt-5.6-terra` in the chat's browser, then review with `gpt-5.6-sol`. Drive workers stay on terra and receive the same research packet. Gemini chats still use one model for the whole turn.
 - The main agent can delegate bounded assignments to instances of the same harness, selecting an OpenAI or Gemini model for each worker. Sub-agents appear as activity cards in the parent response, with their status, model, elapsed time, token usage, deliverable, and artifact downloads. They have no separate chats or message composer.
 - File upload, browsing, explicit downloads, and confirmed deletion in the workspace UI.
 - Markdown responses, including tables and code blocks, plus collapsed tool activity inside each assistant response. New tool activity is saved with chat history; older chats still show their saved text.
@@ -82,11 +82,13 @@ GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-Restart the server after editing `.env`. These settings choose the default model; each chat can save its own choice using the composer selector. Chat, durable memory, and browser actions use that chat's selected model. Gemini does not require an OpenAI key.
+Restart the server after editing `.env`. These settings choose the default provider; each chat can save its own choice using the composer selector. Gemini chats use that selected model for memory, browser actions, and the answer. Gemini does not require an OpenAI key.
 
 Set `MODEL_PROVIDER=openai` to switch back. If `MODEL_PROVIDER` is blank, the harness selects Gemini when only `GEMINI_API_KEY` is set; otherwise it defaults to OpenAI. When both keys are present, set the provider explicitly.
 
-The selector lists configured primary and worker models for providers with an API key. Its saved choice applies to the chat's next main turn; it cannot change during an active run, worker, league refresh, or while archived. Workers keep their independently selected models. Switching models resets the live browser connection while retaining its saved profile and the conversation.
+OpenAI research messages ignore the saved chat model id and run plan, drive, review: `RESEARCH_PLAN_MODEL` (default `gpt-5.6-sol`) writes the plan, `RESEARCH_GATHER_MODEL` (default `gpt-5.6-terra`) collects evidence, then `RESEARCH_REASON_MODEL` (default `gpt-5.6-sol`) writes the answer. The composer labels that choice `OpenAI · plan sol → drive terra → review sol`. Each phase and each drive worker gets the same research packet: question, memory, recent chat, league settings, plan, and brief when they exist. Drive workers are pinned to terra. `OPENAI_MODEL` is still the default for Gemini-off leftovers and for workers outside OpenAI research.
+
+The selector lists configured primary and worker models for providers with an API key. Its saved choice applies to the chat's next main turn; it cannot change during an active run, worker, league refresh, or while archived. Switching models resets the live browser connection while retaining its saved profile and the conversation.
 
 The Gemini integration uses Google's [Gen AI JavaScript SDK](https://googleapis.github.io/js-genai/release_docs/) and Stagehand's [Google model support](https://docs.stagehand.dev/v3/configuration/models).
 
@@ -112,7 +114,7 @@ On narrow screens, the chat sidebar opens as an overlay, and content panels cove
 
 ## Research on request
 
-Ask the NFL or NBA chat to investigate a player, trade, lineup, or news question. The harness can browse sources, execute scripts, and save research in that sport's workspace. Supply your roster and scoring rules for league-specific questions; saved evidence needs freshness checks before reuse.
+Ask the NFL or NBA chat to investigate a player, trade, lineup, or news question. On OpenAI, sol plans, terra drives, then sol reviews. Gemini still does the whole turn itself. The harness can browse sources, execute scripts, and save research in that sport's workspace. Supply your roster and scoring rules for league-specific questions; saved evidence needs freshness checks before reuse.
 
 Automatic news polling, Gemini headline screening, and background news research have been removed. There are no monitoring controls or `MONITOR_*` settings. OpenAI and Gemini settings still configure interactive chats and workers. Automatic NFL schedule and play-by-play collection continues independently, without model calls.
 
@@ -124,7 +126,7 @@ Existing research remains at its original paths. Old background runs under `.dat
 - The browser uses CloakBrowser's persistent Chromium profile with Stagehand attached in `LOCAL` mode for browser actions. CloakBrowser manages graceful browser shutdown to save login storage. CloakBrowser downloads its binary on the first browser session; the host does not need a separate Chrome/Chromium installation.
 - Each chat saves its Chromium profile at `.data/sessions/<id>/browser-profile`, outside the Docker workspace and file-download routes. Sign in once in the harness browser after enabling this; persistent cookies and site storage are reused when you reopen the same chat after a restart. Existing temporary browser logins are not migrated. New chats have separate profiles, and sites can still expire logins. Profiles are local and excluded from Git.
 - The agent has broad control over its own Docker workspace. This is a prototype harness, not a hardened multi-user environment.
-- `OPENAI_MODEL` defaults to `gpt-5.6-luna`; set it in `.env` to use another model your account supports.
+- `OPENAI_MODEL` defaults to `gpt-5.6-luna`; set it in `.env` to use another model your account supports. OpenAI research turns still plan with `RESEARCH_PLAN_MODEL`, drive with `RESEARCH_GATHER_MODEL`, and review with `RESEARCH_REASON_MODEL`.
 - `GEMINI_MODEL` defaults to `gemini-2.5-flash`; set it in `.env` to use another Gemini model your account supports.
 
 ## Sub-agents
@@ -269,3 +271,62 @@ shadow test, register a separate protocol with a new `id` and the Gemini model
 name before prediction; the existing OpenAI protocol remains fixed.
 Results are written under `.data/evals/shadow/nba-shadow-final-five-v1/` as
 sealed artifact bundles, `report.json`, `REPORT.md`, and `results.sqlite`.
+
+
+### Private player assessments
+
+Optional NFL Player assessments uses a separate localhost service. Set host-only `RISKOS_URL`
+and `RISKOS_TOKEN` in `.env` and restart the server. The service must implement the versioned
+assessment API; this repository contains no statistical model. NFL roster/scoring context comes
+from validated saved Sleeper snapshots. Individual Teams/Waivers selections supplement your roster.
+
+Refresh assessment makes no model calls. Research concerns creates an explicit chat draft and
+adds host-owned public source capture/evidence export tools only to that assigned run. Discuss
+assessment reads saved results through `get_player_assessments`. NBA is not supported yet.
+Results retain their timestamps during errors; host caches, captures and evidence outbox files
+persist under Git-ignored `.data/assessments/`, outside the agent workspace. Backend revisions
+remain the source of truth. Keep the service token out of workspace files and source control.
+
+### Structured assessment research
+
+Explicit NFL assessment research now exports version-two packages to the private service.
+The host freezes the selected players, league/week, games and catalog before research starts;
+source-linked teammate findings are allowed through `lookup_assessment_subjects`. Official
+statements, attributed reporting and expectations are distinct. Reports can contain zero findings
+and must describe coverage and unanswered questions. Numerical baseline points are unchanged.
+
+Journals under ignored `.data/assessments/research/` survive restart. Failed/cancelled/interrupted
+runs retain coverage and capture attempts. Pending packages use the existing manual **Retry saved
+evidence delivery** action; retries make no model calls and retain the original batch ID. The
+assessment panel separates statistical calculation time from research time. Existing v1 deliveries
+remain supported. No recurring research or automatic points deductions are introduced.
+
+### Guided NFL assessment research
+
+For controlled fixtures, bounded model trials, and read-only live-run review, see
+[the research quality benchmark](docs/research-quality.md). Its reports distinguish
+transport checks, model extraction, and human source review.
+
+`Research concerns` uses the versioned NFL playbook in `src/assessment-playbook.ts`.
+The host freezes its five questions and preferred NFL/team/AP/ESPN source directory with the
+assignment. Directory membership guides where to start; it does not certify every claim.
+`search_assessment_sources` performs bounded searches in the existing browser (two per
+player/category/stage), and `review_assessment_source` records attribution and why a captured
+source supports a finding. Wider-web sources remain eligible. Search snippets are leads only.
+
+Only guided assessment runs use a single researcher and a shared 30-model-call/eight-minute
+budget. Partial submissions persist through the existing journal/outbox. Package 2.1 adds
+checklist answers, host search activity, source-review rationale and stopping reasons to the
+v2 endpoint. Deploy the compatible RiskOS reader first. Old v1/2.0 deliveries remain retryable.
+The assessment card and read-only chat tool show the saved checklist; numerical baselines and
+statistical freshness do not change. The source directory is maintained in code, with no new
+settings screen, subscription, background monitoring or forecast model.
+
+
+Player assessments may now include **Experimental forecast if playing** from private RiskOS.
+The existing refresh uses no LLM calls. Forecasts appear only for positions passing RiskOS's
+historical release gate; the baseline stays unchanged. Expand a forecast for inputs, arithmetic,
+model/evaluation metadata, and its own calculation time. News, injury, opponent and weather do
+not adjust this conditional number. Confirmed absence hides it from the headline. Older results,
+unavailable forecasts, and K/DEF/NBA remain explicit. Training and coefficients stay in RiskOS;
+this repository only transports and displays assessment responses.

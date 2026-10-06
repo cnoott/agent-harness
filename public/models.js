@@ -17,6 +17,29 @@ let usageError = "";
 let usageRequest;
 const modelKey = model => model ? `${model.provider}:${model.model}` : "";
 const providerName = provider => provider === "openai" ? "OpenAI" : provider === "gemini" ? "Gemini" : "Provider";
+const shortModel = model => String(model || "").replace(/^gpt-5\.6-/, "");
+function pipelineLabel() {
+  const pipeline = catalog?.researchPipeline;
+  if (!pipeline) return "";
+  const plan = shortModel(pipeline.plan?.model || pipeline.reason.model);
+  return `OpenAI · plan ${plan} → drive ${shortModel(pipeline.gather.model)} → review ${shortModel(pipeline.reason.model)}`;
+}
+function displayedModels() {
+  const choices = catalog?.models ?? [];
+  const pipeline = catalog?.researchPipeline;
+  if (!pipeline) return choices;
+  const openai = choices.filter(model => model.provider === "openai");
+  const other = choices.filter(model => model.provider !== "openai");
+  if (!openai.length) return choices;
+  const preferred = selected?.provider === "openai" && openai.some(model => modelKey(model) === modelKey(selected))
+    ? selected
+    : openai[0];
+  return [preferred, ...other];
+}
+function modelLabel(model) {
+  if (catalog?.researchPipeline && model.provider === "openai") return pipelineLabel();
+  return `${providerName(model.provider)} · ${model.model}`;
+}
 
 function showStatus(message = "", error = false) {
   status.textContent = message;
@@ -25,18 +48,22 @@ function showStatus(message = "", error = false) {
 }
 
 function renderModels() {
-  const choices = catalog?.models ?? [];
+  const choices = displayedModels();
   select.replaceChildren();
   if (selected && !choices.some(model => modelKey(model) === modelKey(selected))) {
-    const option = new Option(`${providerName(selected.provider)} · ${selected.model} (unavailable)`, modelKey(selected));
+    const option = new Option(`${modelLabel(selected)} (unavailable)`, modelKey(selected));
     option.disabled = true;
     select.append(option);
   }
-  for (const model of choices) select.append(new Option(`${providerName(model.provider)} · ${model.model}`, modelKey(model)));
+  for (const model of choices) select.append(new Option(modelLabel(model), modelKey(model)));
   if (!select.options.length) select.append(new Option(catalog ? "No models configured" : "Models unavailable", ""));
   select.value = modelKey(selected);
   select.disabled = busy || saving || !choices.length;
-  select.title = selected ? `${providerName(selected.provider)} · ${selected.model}. Main chat model; changes apply to the next message.` : "Configure a provider API key to choose a model.";
+  const title = !selected ? "Configure a provider API key to choose a model."
+    : catalog?.researchPipeline && selected.provider === "openai"
+      ? `${pipelineLabel()}. Applies to the next message.`
+      : `${providerName(selected.provider)} · ${selected.model}. Main chat model; changes apply to the next message.`;
+  select.title = title;
 }
 
 export function setModelBusy(value) {

@@ -1,3 +1,5 @@
+import { playbookInstructions, assessmentEvidenceInstructions } from "./assessment-playbook.js";
+import { ResearchBudget } from "./research-budget.js";
 import "dotenv/config";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -8,8 +10,8 @@ import { lstat, mkdir, readdir, realpath, stat, unlink } from "node:fs/promises"
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createSession, deleteSession, getSession, listSessions, resolveWorkspaceFile, saveSession, saveUpload, sportWorkspaces, workspacePath } from "./store.js";
-import { cancelRun, runAgent, type RunControl, type Emit } from "./agent.js";
-import { closeAllBrowsers, closeBrowser, controlBrowser, subscribeBrowserPreview } from "./browser.js";
+import { cancelRun, runAgent, runResearchTurn, type RunControl, type Emit } from "./agent.js";
+import { closeAllBrowsers, closeBrowser, controlBrowser, subscribeBrowserPreview, runBrowserTool } from "./browser.js";
 import { SandboxExecutionError, stopSandbox } from "./sandbox.js";
 import { Subagents } from "./subagents.js";
 import { readJson, writeJson } from "./run-state.js";
@@ -19,8 +21,11 @@ import { listCommands, resolveCommand } from "./commands.js";
 import { readLeagueRosters } from "./league-rosters.js";
 import { readLeagueMatchup, refreshLeagueSnapshot } from "./league-matchup.js";
 import { NflCollector } from "./nfl-collector.js";
-import { availableChatModels, chatModel, selectChatModel, type ModelSelection } from "./model.js";
+import { availableChatModels, chatModel, researchModels, selectChatModel, usesResearchPipeline, type ModelSelection } from "./model.js";
 import { providerUsage } from "./provider-usage.js";
+import { assessmentHistory, retryAssessmentEvidence, assessmentContext, readAssessments, refreshAssessments, riskosRequest } from "./assessments.js";
+
+import { freezeResearchAssignment, startAssessmentResearch, recoverAssessmentResearch, researchEvidenceTools, type FrozenResearch } from "./assessment-research.js";
 
 const app = Fastify({ logger: true, forceCloseConnections: true });
 const activeRuns = new Map<string, { control: RunControl; message: ChatMessage; listeners: Set<Emit>; completion: Promise<unknown> }>();
@@ -44,6 +49,7 @@ for (const session of await listSessions()) {
   }
   await unlink(activeRunPath(session.id));
 }
+await recoverAssessmentResearch();
 const publicRoot = path.resolve(process.cwd(), "public");
 
 await app.register(fastifyStatic, { root: publicRoot, prefix: "/" });
@@ -56,7 +62,7 @@ app.get("/api/transcription", async () => ({ enabled: Boolean(process.env.OPENAI
 
 app.get("/api/models", async (_request, reply) => {
   reply.header("Cache-Control", "no-store");
-  return { defaultModel: chatModel(), models: availableChatModels() };
+  return { defaultModel: chatModel(), models: availableChatModels(), researchPipeline: researchModels() };
 });
 
 app.get("/api/usage", async (_request, reply) => {
@@ -209,6 +215,41 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 app.get("/api/workspaces", async () => sportWorkspaces);
+
+app.get("/api/chats/:chatId/assessments", async (request, reply) => {
+  const session = await getSession((request.params as { chatId: string }).chatId);
+  if (!session) return reply.code(404).send({ error: "Chat not found" });
+  if (session.workspaceId !== "nfl") return reply.code(403).send({ error: "NBA assessments are not supported yet." });
+  try { return await readAssessments(session); }
+  catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : String(error) }); }
+});
+app.post("/api/chats/:chatId/assessments/refresh", async (request, reply) => {
+  const chatId = (request.params as { chatId: string }).chatId;
+  const session = await getSession(chatId);
+  if (!session) return reply.code(404).send({ error: "Chat not found" });
+  if (session.workspaceId !== "nfl") return reply.code(403).send({ error: "NBA assessments are not supported yet." });
+  if (session.archivedAt || activeRuns.has(chatId) || leagueRefresh?.chatId === chatId) return reply.code(409).send({ error: "Wait for active work or restore this chat before refreshing assessments." });
+  try {
+    const result = await refreshAssessments(session, (request.body as { playerIds?: unknown } | null)?.playerIds ?? []);
+    recordAudit(chatId, result.runId!, "assessment_refresh_requested", { scope: result.scope, modelCalls: 0 });
+    return reply.code(202).send(result);
+  } catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : String(error) }); }
+});
+
+app.get("/api/chats/:chatId/assessments/:playerId/history", async (request, reply) => {
+  const { chatId, playerId } = request.params as { chatId: string; playerId: string };
+  const session = await getSession(chatId);
+  if (!session) return reply.code(404).send({ error: "Chat not found" });
+  try { return await assessmentHistory(session, playerId); }
+  catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : String(error) }); }
+});
+app.post("/api/chats/:chatId/assessments/evidence/retry", async (request, reply) => {
+  const session = await getSession((request.params as { chatId: string }).chatId);
+  if (!session) return reply.code(404).send({ error: "Chat not found" });
+  if (session.archivedAt || activeRuns.has(session.id)) return reply.code(409).send({ error: "Wait for active work or restore this chat first." });
+  try { return await retryAssessmentEvidence(session); }
+  catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : String(error) }); }
+});
 
 app.get("/api/chats/:chatId/nfl/matchup", async (request, reply) => {
   const session = await getSession((request.params as { chatId: string }).chatId);
@@ -528,9 +569,34 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
   if (activeRuns.has(chatId)) return reply.code(409).send({ error: "A run is already active" });
   if (shuttingDown) return reply.code(503).send({ error: "Server is shutting down" });
 
+  const requestedResearch = (request.body as { assessmentResearch?: any }).assessmentResearch;
+  const assessmentRevisionIds = new Set<string>();
+  let assessmentResearch: { runId: string; playerIds: string[] } | undefined;
+  let frozenResearch: FrozenResearch | undefined;
+  let researchBridge: Awaited<ReturnType<typeof startAssessmentResearch>> | undefined;
+  let researchFailed = false;
+  let researchStopReason: string | undefined;
+  if (requestedResearch != null) {
+    try {
+      if (session.workspaceId !== "nfl" || typeof requestedResearch.runId !== "string" || !/^[a-f0-9-]{36}$/.test(requestedResearch.runId)
+        || !Array.isArray(requestedResearch.playerIds) || !requestedResearch.playerIds.length || requestedResearch.playerIds.length > 20
+        || requestedResearch.playerIds.some((id: unknown) => typeof id !== "string" || !/^[A-Za-z0-9_-]{1,40}$/.test(id))) throw new Error("Invalid assessment research assignment");
+      const { scope } = await assessmentContext(session);
+      const origin = await riskosRequest(`/v1/assessment-runs/${requestedResearch.runId}`);
+      if (origin.status !== "completed" || Object.entries(scope).some(([key,value]) => origin.scope?.[key] !== value)
+        || requestedResearch.playerIds.some((id: string) => !origin.assessments.some((a: any) => a.player.id === id && a.state !== "unsupported_position"))) throw new Error("Research must name assessed players in this league/week");
+      assessmentResearch = { runId: requestedResearch.runId, playerIds: [...new Set<string>(requestedResearch.playerIds)] };
+      frozenResearch = await freezeResearchAssignment(session, origin, assessmentResearch.playerIds);
+    } catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : String(error) }); }
+  }
+
   const control: RunControl = { cancelled: false, controller: new AbortController() };
   const model = chatModel(session.model);
-  const assistantMessage: ChatMessage = { id: randomUUID(), role: "assistant", text: "", createdAt: new Date().toISOString(), activity: [], model };
+  const pipeline = usesResearchPipeline(model) ? researchModels() : null;
+  const assistantMessage: ChatMessage = {
+    id: randomUUID(), role: "assistant", text: "", createdAt: new Date().toISOString(), activity: [],
+    model: pipeline?.reason ?? model, gatherModel: pipeline?.gather, planModel: pipeline?.plan,
+  };
   let finishRun!: (error?: unknown) => void;
   const completion = new Promise<unknown>(resolve => { finishRun = resolve; });
   const active = { control, message: assistantMessage, listeners: new Set<Emit>(), completion };
@@ -584,15 +650,61 @@ app.post("/api/chats/:chatId/messages", async (request, reply) => {
       recordAudit(chatId, assistantMessage.id, "run_end", { status: "completed", durationMs: 0, answer: command.answer });
       send({ type: "text_delta", data: command.answer });
     } else {
-      assistantText = await runAgent(session, command.prompt!, send, control, undefined, { ...subagents.forTurn(chatId, assistantMessage.id, control), runId: assistantMessage.id, model });
+      const turn = { ...subagents.forTurn(chatId, assistantMessage.id, control, {
+        research: pipeline ?? undefined,
+      }), runId: assistantMessage.id, sharedContext: undefined as string | undefined, allowedTools: undefined as string[] | undefined, modelBudget: undefined as ResearchBudget | undefined, skipMemory: false };
+      if (assessmentResearch) {
+        const parentTools = turn.toolHandler;
+        researchBridge = await startAssessmentResearch(frozenResearch!, chatId, assistantMessage.id, undefined, async url => {
+          await runBrowserTool(chatId, 'browser_open', {url}, model, control.controller?.signal);
+          return runBrowserTool(chatId, 'browser_observe', {instruction:'Read search results and their original source URLs.'}, model, control.controller?.signal);
+        });
+        turn.allowedTools = ['history_read', 'sports_query', 'get_player_assessments', 'browser_observe', 'browser_screenshot'];
+        turn.extraTools = []; // Assessment research is a single researcher; no worker tools.
+        turn.onIdle = undefined;
+        turn.modelBudget = new ResearchBudget(30);
+        turn.skipMemory = true;
+        const handler = researchBridge.handle;
+        turn.sharedContext = `${playbookInstructions} Frozen assessment assignment: ${researchBridge.context}. Required research coverage categories: availability, practice, role, workload, teammate_context. The exploration phase has host capture/read/subject lookup and structured submission tools. Zero findings with honest coverage is valid. No numerical adjustments. The host separately records the research lifecycle.`;
+        turn.extraTools = [...(turn.extraTools ?? []), ...researchEvidenceTools];
+        turn.toolHandler = async (name, args, callId) => {
+          if (!researchEvidenceTools.some(t => t.name === name)) return parentTools!(name, args, callId);
+          const result = await handler(name, args);
+          if (name === "submit_assessment_evidence") {
+            for (const assessment of result.assessments) assessmentRevisionIds.add(assessment.id);
+            recordAudit(chatId, assistantMessage.id, "assessment_revisions_saved", { ids: [...assessmentRevisionIds] });
+            send({ type: "status", data: { message: "Source-linked assessment revisions saved. Numerical baseline unchanged." } });
+          }
+          return result;
+        };
+        const parentContext = turn.context;
+        turn.context = async () => `${await parentContext?.() ?? ""}\nFrozen research assignment: ${researchBridge!.context}. ${assessmentEvidenceInstructions}`;
+        recordAudit(chatId, assistantMessage.id, "assessment_research_requested", assessmentResearch);
+      }
+      assistantText = pipeline
+        ? await runResearchTurn(session, command.prompt!, send, control, undefined, { ...turn, ...(assessmentResearch ? { maxSteps: 30, maxRuntimeMs: 8 * 60_000 } : {}), research: pipeline })
+        : await runAgent(session, command.prompt!, send, control, undefined, { ...turn, ...(assessmentResearch ? { maxSteps: 30, maxRuntimeMs: 8 * 60_000 } : {}), model });
     }
   } catch (error) {
+    researchFailed = true;
+    researchStopReason = String(error).slice(0,1500);
     send({ type: control.cancelled ? "status" : "error", data: control.cancelled ? { message: "Run stopped." } : error instanceof Error ? error.message : String(error) });
   } finally {
     let saved = false;
     let saveError: unknown;
     try {
       await subagents.cancelParent(chatId);
+      if (researchBridge) {
+        try {
+          const receipt = await researchBridge.finish(control.cancelled ? "cancelled" : researchFailed ? "failed" : "completed", researchStopReason);
+          for (const a of receipt?.assessments ?? []) assessmentRevisionIds.add(a.id);
+        } catch (error) {
+          const notice = `Research package saved locally; delivery needs attention. Use Retry saved evidence delivery. ${error instanceof Error ? error.message : String(error)}`;
+          assistantText += `${assistantText ? "\n\n" : ""}${notice}`;
+          send({ type: "status", data: { message: notice } });
+        }
+      }
+      if (assessmentRevisionIds.size) assistantText += `${assistantText ? "\n\n" : ""}Saved ${assessmentRevisionIds.size} source-linked assessment revision(s). Open Player assessments to inspect the evidence and changes. Numerical baseline points were not adjusted by research.`;
       assistantMessage.text = assistantText;
       session.messages.push(assistantMessage);
       await saveSession(session);

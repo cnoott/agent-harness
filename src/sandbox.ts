@@ -64,7 +64,7 @@ async function prepareSandbox(name: string, expected: SandboxConfiguration, sign
   const inspect = async () => {
     const result = await run(["inspect", "--format", '{"state":{{json .State.Status}},"network":{{json .HostConfig.NetworkMode}},"mounts":{{json .Mounts}}}', name]);
     if (result.exitCode !== 0) {
-      if (result.stderr.includes(`No such object: ${name}`) || result.stderr.includes(`No such container: ${name}`)) return null;
+      if (new RegExp(`no such (?:object|container): ${name}`, "i").test(result.stderr)) return null;
       throw new Error(`Could not inspect Docker sandbox: ${result.stderr || result.stdout}`);
     }
     const value = JSON.parse(result.stdout) as { state: string; network: string; mounts: Array<{ Type: string; Source: string; Destination: string; RW: boolean }> };

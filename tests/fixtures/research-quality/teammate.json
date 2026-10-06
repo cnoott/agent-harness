@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "label": "synthetic controlled evidence, not NFL facts",
+  "target": {
+    "id": "receiver",
+    "name": "Alex Sample",
+    "team": "BUF",
+    "position": "WR"
+  },
+  "teammate": {
+    "id": "quarterback",
+    "name": "Jordan Example",
+    "team": "BUF",
+    "position": "QB"
+  },
+  "id": "teammate",
+  "category": "teammate_context",
+  "status": "supported",
+  "sources": [
+    {
+      "id": "source-1",
+      "url": "https://www.buffalobills.com/teammate",
+      "text": "Jordan Example is ruled out for Week 2.",
+      "author": "Buffalo Bills",
+      "basis": "original",
+      "stage": "preferred"
+    }
+  ],
+  "expected": [
+    {
+      "subject_id": "quarterback",
+      "kind": "availability",
+      "value": "out",
+      "classification": "official_statement",
+      "excerpt": "Jordan Example is ruled out for Week 2.",
+      "source_id": "source-1"
+    }
+  ],
+  "rationale": "Other checklist categories must remain unknown or not checked; silence is not evidence."
+}

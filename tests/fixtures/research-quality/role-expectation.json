@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "label": "synthetic controlled evidence, not NFL facts",
+  "target": {
+    "id": "receiver",
+    "name": "Alex Sample",
+    "team": "BUF",
+    "position": "WR"
+  },
+  "teammate": {
+    "id": "quarterback",
+    "name": "Jordan Example",
+    "team": "BUF",
+    "position": "QB"
+  },
+  "id": "role-expectation",
+  "category": "role",
+  "status": "supported",
+  "sources": [
+    {
+      "id": "source-1",
+      "url": "https://www.buffalobills.com/role-expectation",
+      "text": "Alex Sample is expected to start, according to reporter Casey Writer.",
+      "author": "Casey Writer",
+      "basis": "expectation",
+      "stage": "preferred"
+    }
+  ],
+  "expected": [
+    {
+      "subject_id": "receiver",
+      "kind": "role",
+      "value": "expected starter",
+      "classification": "attributed_expectation",
+      "excerpt": "Alex Sample is expected to start, according to reporter Casey Writer.",
+      "source_id": "source-1"
+    }
+  ],
+  "rationale": "Other checklist categories must remain unknown or not checked; silence is not evidence."
+}

@@ -1,0 +1,56 @@
+{
+  "version": "1.0",
+  "label": "synthetic controlled evidence, not NFL facts",
+  "target": {
+    "id": "receiver",
+    "name": "Alex Sample",
+    "team": "BUF",
+    "position": "WR"
+  },
+  "teammate": {
+    "id": "quarterback",
+    "name": "Jordan Example",
+    "team": "BUF",
+    "position": "QB"
+  },
+  "id": "conflict",
+  "category": "role",
+  "status": "conflicting",
+  "sources": [
+    {
+      "id": "source-1",
+      "url": "https://independent-reporter.example/conflict",
+      "text": "Alex Sample will start, coach Taylor said in an interview with Casey Writer.",
+      "author": "Taylor",
+      "basis": "attributed",
+      "stage": "wider"
+    },
+    {
+      "id": "source-2",
+      "url": "https://independent-reporter.example/second-report",
+      "text": "Alex Sample will be a reserve, coach Morgan told reporter Jamie Writer.",
+      "author": "Morgan",
+      "basis": "attributed",
+      "stage": "wider"
+    }
+  ],
+  "expected": [
+    {
+      "subject_id": "receiver",
+      "kind": "role",
+      "value": "starter",
+      "classification": "attributed_reporting",
+      "excerpt": "Alex Sample will start, coach Taylor said in an interview with Casey Writer.",
+      "source_id": "source-1"
+    },
+    {
+      "subject_id": "receiver",
+      "kind": "role",
+      "value": "reserve",
+      "classification": "attributed_reporting",
+      "excerpt": "Alex Sample will be a reserve, coach Morgan told reporter Jamie Writer.",
+      "source_id": "source-2"
+    }
+  ],
+  "rationale": "Other checklist categories must remain unknown or not checked; silence is not evidence."
+}

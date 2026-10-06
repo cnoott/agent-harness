@@ -6,3 +6,4 @@ dist/
 .data/
 *.log
 /design-qa.md
+.DS_Store

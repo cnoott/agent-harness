@@ -187,7 +187,7 @@ test("server persists uploads and waits for main-chat saves during shutdown", { 
     const running = await fetch(`${url}/api/chats/${session.id}/messages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "test shutdown" }) });
     const reader = running.body!.getReader();
     let stream = "";
-    while (!stream.includes("Saved before shutdown")) {
+    while (!stream.includes("Planning with")) {
       const chunk = await reader.read();
       assert(!chunk.done);
       stream += new TextDecoder().decode(chunk.value);
@@ -205,14 +205,19 @@ test("server persists uploads and waits for main-chat saves during shutdown", { 
     assert.equal(await readFile(path.join(workspace, "fixture.txt"), "utf8"), "local fixture 🏈");
     assert(!(await readdir(workspace)).some(name => name.startsWith(".upload-")));
     const stored = JSON.parse(await readFile(sessionFile, "utf8"));
-    assert.equal(stored.messages.at(-1).text, "Saved before shutdown 🏈");
+    assert.doesNotMatch(stored.messages.at(-1).text, /Saved before shutdown/);
+    assert.equal(stored.messages.at(-1).role, "assistant");
+    assert(stored.messages.at(-1).activity.some((event: any) => event.type === "status"));
+    assert(!stream.includes("Saved before shutdown"));
     await assert.rejects(access(path.join(path.dirname(sessionFile), "active-run.json")));
     const db = new DatabaseSync(path.join(path.dirname(sessionFile), "history.sqlite"), { readOnly: true });
     try { assert.equal(JSON.parse(String(db.prepare("SELECT data FROM events WHERE kind='run_end' ORDER BY id DESC LIMIT 1").get()!.data)).status, "cancelled"); }
     finally { db.close(); }
     await start();
     const restored = await (await fetch(`${url}/api/chats/${session.id}`)).json() as any;
-    assert.equal(restored.messages.filter((m: any) => m.text === "Saved before shutdown 🏈").length, 1);
+    assert.equal(restored.messages.at(-1).id, stored.messages.at(-1).id);
+    assert.equal(restored.messages.filter((m: any) => m.id === stored.messages.at(-1).id).length, 1);
+    assert.doesNotMatch(restored.messages.at(-1).text, /Saved before shutdown/);
     assert.equal(await (await fetch(`${url}/api/chats/${session.id}/files/fixture.txt`)).text(), "local fixture 🏈");
     await stop();
   } finally {
