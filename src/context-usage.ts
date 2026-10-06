@@ -5,7 +5,9 @@ export const geminiCompactionThresholdCharacters = 60_000;
 
 export function contextCapacity(provider: string, model: string): number | null {
   // https://developers.openai.com/api/docs/models/gpt-5.6-luna (2026-09-12)
-  return provider === "openai" && model === "gpt-5.6-luna" ? 1_050_000 : null;
+  // https://developers.openai.com/api/docs/models/gpt-5.6-terra (2026-09-17)
+  // https://developers.openai.com/api/docs/models/gpt-5.6-sol (2026-09-17)
+  return provider === "openai" && ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"].includes(model) ? 1_050_000 : null;
 }
 
 export function contextUsage(provider: string, model: string, request: unknown, reported: unknown, carriedTokens = 0): ContextUsage {

@@ -3,7 +3,7 @@ const heading = document.querySelector("#context-panel-title");
 const buttons = [...document.querySelectorAll("[data-open-panel]")];
 const browserButton = document.querySelector("#browser-toggle");
 const overlayPanel = matchMedia("(max-width: 1199px)");
-const titles = { matchup: "My matchup", games: "Games", teams: "Teams", waivers: "Waivers", files: "Files", browser: "Browser", runs: "Runs" };
+const titles = { assessments: "Player assessments", matchup: "My matchup", games: "Games", teams: "Teams", waivers: "Waivers", files: "Files", browser: "Browser", runs: "Runs" };
 let sport = "";
 let selected = null;
 let opener = null;
@@ -14,7 +14,7 @@ function showPanel(name, focus = true) {
   panel.classList.toggle("hidden", !name);
   document.querySelector(".chat-panel").inert = Boolean(name) && overlayPanel.matches;
   document.querySelector("main").classList.toggle("has-context-panel", Boolean(name));
-  document.querySelector("main").classList.toggle("has-teams-panel", name === "teams" || name === "waivers" || name === "matchup");
+  document.querySelector("main").classList.toggle("has-teams-panel", name === "assessments" || name === "teams" || name === "waivers" || name === "matchup");
   for (const view of panel.querySelectorAll("[data-panel]")) view.classList.toggle("hidden", view.dataset.panel !== name);
   for (const button of buttons) button.setAttribute("aria-expanded", String(button.dataset.openPanel === name));
   if (name) {
@@ -51,6 +51,8 @@ export function setPanelWorkspace(workspaceId) {
   document.querySelector("#history-title").textContent = sport ? `${sport.toUpperCase()} chats` : "Chats";
   document.querySelector("#new-chat").textContent = sport ? `New ${sport.toUpperCase()} chat` : "New chat";
   document.querySelector("#games-toggle").disabled = !sport;
+  document.querySelector("#assessments-toggle").disabled = sport !== "nfl";
+  document.querySelector("#assessments-toggle").hidden = sport !== "nfl";
   document.querySelector("#matchup-toggle").disabled = sport !== "nfl";
   document.querySelector("#matchup-toggle").hidden = sport !== "nfl";
   document.querySelector("#teams-toggle").disabled = !sport;

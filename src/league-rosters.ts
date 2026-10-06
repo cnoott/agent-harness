@@ -151,7 +151,7 @@ export async function readLeagueRosters(session: ChatSession, includeWaivers = f
     }
   }
   return { state: "ready", leagueId, leagueName: text(league.name, "Sleeper league"), season: league.season,
-    myRosterId, fetchedAt: summary.fetched_at, playersFetchedAt, snapshotPath, warnings, availablePlayers, matchup,
+    myRosterId, scoringSettings: league.scoring_settings, snapshotWeek: summary.week, fetchedAt: summary.fetched_at, playersFetchedAt, snapshotPath, warnings, availablePlayers, matchup,
     fantasy: fantasy ? { week: fantasy.week, season: fantasy.season, fetchedAt: fantasy.fetchedAt, snapshotPath: fantasy.snapshotPath } : null,
     teams: teams.sort((a, b) => a.id === myRosterId ? -1 : b.id === myRosterId ? 1 : a.name.localeCompare(b.name)).map(team => {
       const scores = weeklyTeams.get(team.id);

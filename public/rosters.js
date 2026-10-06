@@ -123,6 +123,11 @@ function renderTeam(team, target, yours) {
       score.title = player.points == null ? "No player score in the saved week" : `Sleeper · Week ${data.fantasy.week} · Saved ${new Date(player.pointsFetchedAt || data.fantasy.fetchedAt).toLocaleString()}`;
       row.append(badge, text, score, box);
       list.append(row);
+      const assess = element("button", "secondary roster-assess", `Assess ${player.name}`);
+      assess.type = "button";
+      assess.disabled = busy;
+      assess.addEventListener("click", () => document.dispatchEvent(new CustomEvent("assessment-select-player", { detail: { chatId, playerId: player.id, name: player.name } })));
+      list.append(assess);
     }
   }
   if (!visible.length) list.append(element("p", "rosters-caption", `No ${position.value || "rostered"} players.`));

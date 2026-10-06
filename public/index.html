@@ -106,7 +106,7 @@
                   <p id="compaction-label" class="popover-note" hidden></p>
                 </div>
               </details>
-              <select id="chat-model" aria-label="Chat model" aria-describedby="model-status" disabled><option>Loading models…</option></select>
+              <select id="chat-model" aria-label="Chat model or research pipeline" aria-describedby="model-status" disabled><option>Loading models…</option></select>
               <details id="provider-usage" class="composer-detail provider-usage">
                 <summary id="spend-toggle" aria-label="Provider spending"><span id="provider-spend">Usage…</span></summary>
                 <div class="composer-popover spend-popover" role="status">
@@ -184,6 +184,15 @@
               </section>
             </div>
           </section>
+          <section id="player-assessments" class="panel-view hidden" data-panel="assessments" aria-label="Player assessments">
+            <div class="rosters-heading"><h3>Player assessments</h3><button id="assessments-refresh" type="button">Refresh assessment</button></div>
+            <p class="assessment-notice">Experimental · Baseline points if active. Historical variability is not a predicted range. Refresh uses no AI calls; research is a separate chat action.</p>
+            <button id="assessments-retry-evidence" class="secondary" type="button">Retry saved evidence delivery</button>
+            <p id="assessments-status" class="workspace-copy" role="status"></p>
+            <p id="assessments-error" class="file-error" role="alert"></p>
+            <div id="assessments-selected"></div>
+            <div id="assessments-list"></div>
+          </section>
           <section id="league-waivers" class="panel-view hidden" data-panel="waivers" aria-label="League waivers">
             <div class="rosters-heading"><h3 id="waivers-title">Waiver players</h3><button id="waivers-refresh" class="secondary" type="button">Ask agent to refresh</button></div>
             <p id="waivers-status" class="workspace-copy" role="status"></p>
@@ -202,6 +211,7 @@
                 <p id="waivers-selection" aria-live="polite">Select a player to research a pickup.</p>
                 <label for="waivers-drop">Compare with a player on your team</label>
                 <select id="waivers-drop"><option value="">No drop selected</option></select>
+                <button id="waivers-assess" class="secondary" type="button" disabled>Add to assessments</button>
                 <button id="waivers-discuss" type="button" disabled>Discuss pickup</button>
                 <small>Adds a question to chat. No claim or drop is submitted.</small>
               </div>
@@ -261,6 +271,7 @@
         <nav class="panel-navigation" aria-label="Workspace panels">
           <p class="nav-group-label">League</p>
           <button id="matchup-toggle" class="secondary" type="button" data-open-panel="matchup" aria-controls="context-panel" aria-expanded="false" disabled>My matchup</button>
+          <button id="assessments-toggle" class="secondary" type="button" data-open-panel="assessments" aria-controls="context-panel" aria-expanded="false" disabled>Player assessments</button>
           <button id="games-toggle" class="secondary" type="button" data-open-panel="games" aria-controls="context-panel" aria-expanded="false" disabled>Games</button>
           <button id="teams-toggle" class="secondary" type="button" data-open-panel="teams" aria-controls="context-panel" aria-expanded="false" disabled>League</button>
           <button id="waivers-toggle" class="secondary" type="button" data-open-panel="waivers" aria-controls="context-panel" aria-expanded="false" disabled>Waivers</button>

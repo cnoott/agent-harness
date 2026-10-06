@@ -32,12 +32,30 @@ export function chatModel(selection?: ModelSelection): ModelSelection {
   return { provider, model };
 }
 
+export type ResearchPipeline = { plan: ModelSelection; gather: ModelSelection; reason: ModelSelection };
+
+export function researchModels(): ResearchPipeline | null {
+  if (!process.env.OPENAI_API_KEY?.trim()) return null;
+  const reason = { provider: "openai" as const, model: process.env.RESEARCH_REASON_MODEL?.trim() || "gpt-5.6-sol" };
+  return {
+    plan: { provider: "openai", model: process.env.RESEARCH_PLAN_MODEL?.trim() || reason.model },
+    gather: { provider: "openai", model: process.env.RESEARCH_GATHER_MODEL?.trim() || "gpt-5.6-terra" },
+    reason,
+  };
+}
+
+export function usesResearchPipeline(selection?: ModelSelection): boolean {
+  return Boolean(researchModels() && chatModel(selection).provider === "openai");
+}
+
 export function availableChatModels(): ModelSelection[] {
   const primary = (["openai", "gemini"] as const).flatMap((provider) => {
     const config = getModelConfig(false, { provider, model: "" });
     return config.apiKey ? [{ provider, model: config.model }] : [];
   });
-  return [...primary, ...availableModels()].filter((item, index, all) =>
+  const research = researchModels();
+  const pipeline = research ? [research.plan, research.gather, research.reason] : [];
+  return [...primary, ...pipeline, ...availableModels()].filter((item, index, all) =>
     all.findIndex(candidate => candidate.provider === item.provider && candidate.model === item.model) === index);
 }
 

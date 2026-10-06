@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import { appendFile, copyFile, mkdir, readdir, realpath, rm, stat } from "node:fs/promises";
 import path from "node:path";
-import { cancelRun, emptyRunStats, runAgent, type Emit, type RunControl, type RunOptions, type RunStats } from "./agent.js";
+import { cancelRun, emptyRunStats, formatResearchPacket, runAgent, type Emit, type ResearchPacket, type RunControl, type RunOptions, type RunStats } from "./agent.js";
 import { availableModels, type ModelSelection } from "./model.js";
 import { closeBrowser } from "./browser.js";
 import { stopSandbox } from "./sandbox.js";
@@ -22,6 +22,9 @@ export type WorkerRecord = {
   task: string;
   context: string;
   expectedOutput: string;
+  requirementIds?: string[];
+  crossCheckReason?: string;
+  researchPacket?: ResearchPacket;
   model: ModelSelection;
   status: "queued" | "running" | "completed" | "partial" | "blocked" | "failed" | "cancelled" | "interrupted";
   createdAt: string;
@@ -76,6 +79,7 @@ export class Subagents {
   private listeners = new Map<string, Set<Emit>>();
   private changes = new Set<() => void>();
   private writes = new Map<string, Promise<void>>();
+  private packets = new Map<string, ResearchPacket>();
   private scheduling = false;
   private closing = false;
 
@@ -128,7 +132,7 @@ export class Subagents {
 
   private view(record: WorkerRecord) {
     const { id, parentId, parentRunId, task, expectedOutput, model, status, createdAt, startedAt, endedAt, updatedAt, activity, result, error, stats, attempts } = record;
-    return { id, parentId, parentRunId, task, expectedOutput, model, status, createdAt, startedAt, endedAt, updatedAt, activity, result, error, stats, attempts };
+    return { id, parentId, parentRunId, task, expectedOutput, requirementIds: record.requirementIds, crossCheckReason: record.crossCheckReason, model, status, createdAt, startedAt, endedAt, updatedAt, activity, result, error, stats, attempts };
   }
 
   private async save(record: WorkerRecord) {
@@ -158,12 +162,24 @@ export class Subagents {
     const existing = this.records.get(id);
     if (existing) return this.view(existing);
     if ([...this.records.values()].filter((record) => record.parentRunId === parentRunId && record.parentId === parentId).length >= 8) throw new Error("This turn has reached its 8-worker limit. Use the existing results.");
-    const model = availableModels().find((item) => item.provider === args.provider && item.model === args.model);
+    const packet = this.packets.get(`${parentId}:${parentRunId}`) ?? options.researchPacket;
+    let requirementIds: string[] | undefined;
+    if (options.research) {
+      if (!Array.isArray(args.requirementIds) || !args.requirementIds.length || args.requirementIds.some(id => typeof id !== "string" || !packet?.requirements?.some(r => r.id === id)) || new Set(args.requirementIds).size !== args.requirementIds.length) throw new Error("Assign one or more unique requirement IDs from the research plan.");
+      requirementIds = args.requirementIds as string[];
+      if (packet?.retryRequirementIds && requirementIds.some(id => !packet.retryRequirementIds!.includes(id))) throw new Error("The retry may only research unresolved requirement IDs.");
+      const overlap = [...this.records.values()].some(record => record.parentId === parentId && record.parentRunId === parentRunId && ["queued", "running", "completed"].includes(record.status) && record.requirementIds?.some(id => requirementIds!.includes(id)));
+      if (overlap && !String(args.crossCheckReason ?? "").trim() && !packet?.retryRequirementIds) throw new Error("These requirements already have an assignment. Reuse its result or provide a deliberate cross-check reason.");
+    }
+    const pinned = options.research?.gather;
+    const model = pinned ?? availableModels().find((item) => item.provider === args.provider && item.model === args.model);
     if (!model) throw new Error(`Select a configured model: ${JSON.stringify(availableModels())}`);
+    if (packet) this.packets.set(`${parentId}:${parentRunId}`, packet);
     const record: WorkerRecord = {
       id, parentId, parentRunId,
       task: requiredText(args.task, "task", 8000), context: requiredText(args.context, "context", 16000, true),
       expectedOutput: requiredText(args.expectedOutput, "expectedOutput", 4000), model,
+      ...(requirementIds ? { requirementIds, crossCheckReason: requiredText(args.crossCheckReason, "crossCheckReason", 2000, true), researchPacket: structuredClone(packet) } : {}),
       status: "queued", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), activity: "Waiting for a worker slot",
       stats: emptyRunStats(), allowedTools: options.sandboxNetworkEnabled === false
         ? (options.allowedTools ?? ["exec"]).filter((name) => !name.startsWith("browser_") && !name.startsWith("agent_"))
@@ -214,7 +230,15 @@ export class Subagents {
       record.activity = "Working on the assignment";
       record.attempts += 1;
       await this.save(record);
-      const prompt = `Assignment:\n${record.task}\n\nSelected context:\n${record.context}\n\nRequired deliverable:\n${record.expectedOutput}`;
+      const packet = record.researchPacket ?? this.packets.get(`${record.parentId}:${record.parentRunId}`);
+      const parentContext = record.context.length > 6_000 ? `${record.context.slice(0, 6_000)}\n\n…` : record.context;
+      const prompt = [
+        packet ? formatResearchPacket(packet, "worker", { task: record.task, expectedOutput: record.expectedOutput }) : "",
+        `Assignment:\n${record.task}`,
+        parentContext ? `Selected context:\n${parentContext}` : "",
+        `Required deliverable:\n${record.expectedOutput}`,
+        ...(record.requirementIds ? [`Assigned requirement IDs: ${JSON.stringify(record.requirementIds)}. Research this slice only.`] : []),
+      ].filter(Boolean).join("\n\n");
       const checkpoint = await readJson<AgentCheckpoint>(checkpointPath(record.id));
       const parent = await getSession(record.parentId);
       await this.runner({ id: record.id, workspaceId: parent?.workspaceId, workspaceName: parent?.workspaceName, createdAt: record.createdAt, messages: [] }, prompt, (event) => {
@@ -360,10 +384,20 @@ export class Subagents {
     };
     return {
       ...options,
-      extraTools: delegationTools,
+      onResearchPacket: packet => { this.packets.set(`${parentId}:${parentRunId}`, packet); },
+      extraTools: options.research ? delegationTools.map(definition => definition.name !== "agent_start" ? definition : ({
+        ...definition, parameters: { ...definition.parameters,
+          properties: { ...definition.parameters.properties, requirementIds: { type: "array", items: { type: "string" } }, crossCheckReason: { type: "string", description: "Empty for a new assignment; explain why already-assigned evidence needs independent verification." } },
+          required: [...definition.parameters.required, "requirementIds", "crossCheckReason"],
+        },
+      })) : delegationTools,
       context: async () => {
-        const workers = this.list(parentId).slice(-20).map(({ id, status, task }) => ({ id, status, task: task.slice(0, 180) }));
-        return `Delegate independent work when useful. Give each worker a distinct assignment and expected output. Workers cannot chat with users or each other. Available worker models: ${JSON.stringify(availableModels())}. Your worker inventory (runtime data): ${JSON.stringify(workers)}. Use agent_read for results; do not assume a worker's completion proves correctness. Check artifacts and sources. Finish only after required workers settle.`;
+        const workers = this.list(parentId).filter(record => record.parentRunId === parentRunId).slice(-20).map(({ id, status, task, requirementIds, result }) => ({ id, status, task: task.slice(0, 180), requirementIds, summary: result?.summary, limitations: result?.limitations, artifacts: result?.artifacts }));
+        const models = options.research ? [options.research.gather] : availableModels();
+        const pin = options.research
+          ? ` Research workers must use ${options.research.gather.provider}/${options.research.gather.model}. Other models are ignored.`
+          : "";
+        return `Delegate independent work when useful. Give each worker a distinct assignment and expected output. Workers cannot chat with users or each other. Available worker models: ${JSON.stringify(models)}.${pin} Your worker inventory (runtime data): ${JSON.stringify(workers)}. Use agent_read for results; do not assume a worker's completion proves correctness. Check artifacts and sources. Finish only after required workers settle.`;
       },
       toolHandler: async (name, args, callId) => {
         signal.throwIfAborted();

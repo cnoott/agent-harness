@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "label": "synthetic controlled evidence, not NFL facts",
+  "target": {
+    "id": "receiver",
+    "name": "Alex Sample",
+    "team": "BUF",
+    "position": "WR"
+  },
+  "teammate": {
+    "id": "quarterback",
+    "name": "Jordan Example",
+    "team": "BUF",
+    "position": "QB"
+  },
+  "id": "unknown",
+  "category": "availability",
+  "status": "unresolved",
+  "sources": [
+    {
+      "id": "source-1",
+      "url": "https://www.buffalobills.com/no-status",
+      "text": "Alex Sample attended a community event. This article contains no practice or game status.",
+      "author": "Buffalo Bills",
+      "basis": "lead",
+      "stage": "preferred"
+    }
+  ],
+  "expected": [],
+  "rationale": "Other checklist categories must remain unknown or not checked; silence is not evidence."
+}

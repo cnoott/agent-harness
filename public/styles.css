@@ -453,3 +453,28 @@ body[data-sport="nba"] { --accent: #f4b474; --accent-ink: #30200d; }
   .matchup-columns > div { padding: 8px; }
   .matchup-actions { bottom: -16px; }
 }
+
+/* Private player assessments */
+.assessment-notice { font-size: .85rem; line-height: 1.5; opacity: .8; }
+.assessment-card { border: 1px solid #3e4654; border-radius: 12px; margin: 12px 0; overflow: hidden; }
+.assessment-card > summary { cursor: pointer; padding: 16px; display: grid; gap: 7px; }
+.assessment-card summary:hover { background: #ffffff08; }
+.assessment-baseline { font-size: 1.05rem; }
+.assessment-concerns { color: #e6ba76; font-size: .85rem; line-height: 1.5; }
+.assessment-body { padding: 0 16px 16px; overflow-wrap: anywhere; }
+.assessment-body h4 { margin: 20px 0 10px; }
+.assessment-body pre { white-space: pre-wrap; font-size: .75rem; }
+.assessment-body blockquote { margin: 12px 0; padding: 10px; border-left: 3px solid #688cac; background: #ffffff05; }
+.assessment-body small { display: inline-block; opacity: .7; font-size: .75rem; }
+.assessment-table { overflow-x: auto; }
+.assessment-table table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.assessment-table th, .assessment-table td { padding: 8px; text-align: left; border-bottom: 1px solid #ffffff18; }
+.assessment-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#assessments-selected button { margin: 4px; }
+.roster-assess { font-size: .7rem; margin: 0 8px 8px; }
+@media (max-width: 600px) { #player-assessments .rosters-heading { align-items: stretch; flex-direction: column; } .assessment-card > summary { padding: 12px; } }
+
+.assessment-coverage { margin: 10px 0; padding: 10px 0; border-bottom: 1px solid #ffffff18; font-size: .85rem; line-height: 1.5; overflow-wrap: break-word; }
+.assessment-coverage strong { display: block; text-transform: capitalize; }
+.assessment-coverage p { margin: 5px 0 0; }
+.assessment-table table { min-width: 330px; overflow-wrap: normal; }

@@ -18,6 +18,7 @@ function element(tag, className, text) {
 function selection() {
   document.querySelector("#waivers-selection").textContent = selected ? `Research pickup: ${selected.name} · ${selected.positions.join("/")} · ${selected.nflTeam}` : "Select a player to research a pickup.";
   discuss.disabled = busy || !selected;
+  document.querySelector("#waivers-assess").disabled = busy || !selected;
 }
 function appendPlayers(players) {
   for (const player of players) {
@@ -96,3 +97,5 @@ position.addEventListener("change", () => void refreshWaivers());
 teamOnly.addEventListener("change", () => void refreshWaivers());
 more.addEventListener("click", () => { if (data?.nextOffset !== null && data?.nextOffset !== undefined) void refreshWaivers(data.nextOffset); });
 document.addEventListener("panel-change", event => { if (event.detail === "waivers") void refreshWaivers(); });
+
+document.querySelector("#waivers-assess").addEventListener("click", () => { if (selected && !busy) document.dispatchEvent(new CustomEvent("assessment-select-player", { detail: { chatId, playerId: selected.id, name: selected.name } })); });
